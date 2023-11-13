@@ -127,7 +127,7 @@ auto main(int argc, char* argv[]) -> int
 		}
 	);
 	glUseProgram(raygenProgram);
-	glDispatchCompute(static_cast<GLuint>(ScreenSize.x / 8u), static_cast<GLuint>(ScreenSize.y / 4u), 1u);
+	glDispatchCompute(static_cast<GLuint>(ScreenSize.x / 8u), static_cast<GLuint>(ScreenSize.y / 8u), 1u);
 	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
 	GLuint screenProgram = loadProgram(
