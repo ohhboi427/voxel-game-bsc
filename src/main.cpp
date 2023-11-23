@@ -126,9 +126,6 @@ auto main(int argc, char* argv[]) -> int
 			{ GL_COMPUTE_SHADER, "src/shaders/Raygen.comp" },
 		}
 	);
-	glUseProgram(raygenProgram);
-	glDispatchCompute(static_cast<GLuint>(ScreenSize.x / 8u), static_cast<GLuint>(ScreenSize.y / 8u), 1u);
-	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
 	GLuint screenProgram = loadProgram(
 		{
@@ -136,7 +133,6 @@ auto main(int argc, char* argv[]) -> int
 			{ GL_FRAGMENT_SHADER, "src/shaders/Screen.frag" },
 		}
 	);
-	glUseProgram(screenProgram);
 
 	GLuint dummyVertexArray;
 	glCreateVertexArrays(1, &dummyVertexArray);
@@ -148,6 +144,11 @@ auto main(int argc, char* argv[]) -> int
 	{
 		glfwPollEvents();
 
+		glUseProgram(raygenProgram);
+		glDispatchCompute(static_cast<GLuint>(ScreenSize.x / 8u), static_cast<GLuint>(ScreenSize.y / 8u), 1u);
+		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
+		glUseProgram(screenProgram);
 		glDrawArrays(GL_TRIANGLES, 0, 3);
 
 		glfwSwapBuffers(window);
