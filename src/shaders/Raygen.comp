@@ -15,19 +15,12 @@ layout(binding = 1, std140) uniform ScreenProperties
 
 layout(binding = 0, rgba32f) uniform image2D u_renderedImage;
 
-vec3 GetRayDirection(vec2 uv)
+struct RayHitInfo
 {
-	uv = uv * 2.0 - 1.0;
-
-	vec4 pointNDSH = vec4(uv, -1.0, 1.0);
-
-	vec4 eyeDir = u_projectionProperties.ProjInv * pointNDSH;
-	eyeDir.w = 0.0;
-
-	vec3 worldDir = (u_projectionProperties.ViewInv * eyeDir).xyz;
-
-	return normalize(worldDir);
-}
+	float Distance;
+	vec3 Normal;
+	vec3 Point;
+};
 
 // x -> Distance to the nearest intersection.
 // y -> Distance to the furthest intersection.
@@ -68,7 +61,7 @@ bool GetVoxel(ivec3 position)
 	return position.y <= (-20 + (sin(position.x / 10.0) * cos(position.z / 20.0)) * 10.0);
 }
 
-float RayVoxelIntersection(vec3 rayOrigin, vec3 rayDirection, float maxDistance)
+bool RayVoxelIntersection(vec3 rayOrigin, vec3 rayDirection, float maxDistance, out RayHitInfo hitInfo)
 {
 	vec3 stepSize = vec3(abs(1.0 / rayDirection.x), abs(1.0 / rayDirection.y), abs(1.0 / rayDirection.z));
 
@@ -107,22 +100,26 @@ float RayVoxelIntersection(vec3 rayOrigin, vec3 rayDirection, float maxDistance)
 		rayLength.z = ((mapPosition.z + 1) - rayOrigin.z) * stepSize.z;
 	}
 
-	float d = 0;
-	while(d < maxDistance)
+	hitInfo.Distance = 0.0;
+	while(hitInfo.Distance < maxDistance)
 	{
 		if(rayLength.x < rayLength.y)
 		{
 			if(rayLength.x < rayLength.z)
 			{
 				mapPosition.x += stepDirection.x;
-				d = rayLength.x;
+				hitInfo.Distance = rayLength.x;
 				rayLength.x += stepSize.x;
+
+				hitInfo.Normal = vec3(-stepDirection.x, 0.0, 0.0);
 			}
 			else
 			{
 				mapPosition.z += stepDirection.z;
-				d = rayLength.z;
+				hitInfo.Distance = rayLength.z;
 				rayLength.z += stepSize.z;
+
+				hitInfo.Normal = vec3(0.0, 0.0, -stepDirection.z);
 			}
 		}
 		else
@@ -130,24 +127,43 @@ float RayVoxelIntersection(vec3 rayOrigin, vec3 rayDirection, float maxDistance)
 			if(rayLength.y < rayLength.z)
 			{
 				mapPosition.y += stepDirection.y;
-				d = rayLength.y;
+				hitInfo.Distance = rayLength.y;
 				rayLength.y += stepSize.y;
+
+				hitInfo.Normal = vec3(0.0, -stepDirection.y, 0.0);
 			}
 			else
 			{
 				mapPosition.z += stepDirection.z;
-				d = rayLength.z;
+				hitInfo.Distance = rayLength.z;
 				rayLength.z += stepSize.z;
+
+				hitInfo.Normal = vec3(0.0, 0.0, -stepDirection.z);
 			}
 		}
 
 		if(GetVoxel(mapPosition))
 		{
-			return d;
+			hitInfo.Point = rayOrigin + hitInfo.Distance * rayDirection;
+			return true;
 		}
 	}
 
-	return -1.0;
+	return false;
+}
+
+vec3 GetRayDirection(vec2 uv)
+{
+	uv = uv * 2.0 - 1.0;
+
+	vec4 pointNDSH = vec4(uv, -1.0, 1.0);
+
+	vec4 eyeDir = u_projectionProperties.ProjInv * pointNDSH;
+	eyeDir.w = 0.0;
+
+	vec3 worldDir = (u_projectionProperties.ViewInv * eyeDir).xyz;
+
+	return normalize(worldDir);
 }
 
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
@@ -156,13 +172,22 @@ void main()
 	const vec2 uv = vec2(gl_GlobalInvocationID.xy) / vec2(u_screenProperties.Size);
 	const vec3 rayOrigin = u_projectionProperties.ViewInv[3].xyz;
 	const vec3 rayDirection = GetRayDirection(uv);
+	const vec3 lightDirection = normalize(vec3(-5.0, -4.0, -1.0));
+	const vec3 lightColor = vec3(1.0, 1.0, 0.9);
+	const float ambientStrength = 0.1;
 
 	vec3 color = vec3(0.5, 0.8, 0.9);
 
-	float t = RayVoxelIntersection(rayOrigin, rayDirection, 256.0);
-	if(t >= 0.0)
+	RayHitInfo hitInfo;
+	if(RayVoxelIntersection(rayOrigin, rayDirection, 256.0, hitInfo))
 	{
-		color = vec3(t / 256.0);
+		color = ambientStrength * lightColor;
+
+		RayHitInfo shadowHitInfo;
+		if(!RayVoxelIntersection(hitInfo.Point, -lightDirection, 64.0, shadowHitInfo))
+		{
+			color = dot(hitInfo.Normal, -lightDirection) * lightColor;
+		}
 	}
 
 	imageStore(u_renderedImage, ivec2(gl_GlobalInvocationID.xy), vec4(color, 1.0));
