@@ -174,7 +174,7 @@ void main()
 	const vec3 rayDirection = GetRayDirection(uv);
 	const vec3 lightDirection = normalize(vec3(-5.0, -4.0, -1.0));
 	const vec3 lightColor = vec3(1.0, 1.0, 0.9);
-	const float ambientStrength = 0.1;
+	const float ambientStrength = 0.05;
 
 	vec3 color = vec3(0.5, 0.8, 0.9);
 
@@ -186,7 +186,7 @@ void main()
 		RayHitInfo shadowHitInfo;
 		if(!RayVoxelIntersection(hitInfo.Point, -lightDirection, 64.0, shadowHitInfo))
 		{
-			color = dot(hitInfo.Normal, -lightDirection) * lightColor;
+			color = dot(hitInfo.Normal, -lightDirection) * 2.0 * lightColor;
 		}
 	}
 
