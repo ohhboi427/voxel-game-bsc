@@ -76,6 +76,20 @@ auto loadProgram(const std::unordered_map<GLenum, std::filesystem::path>& paths)
 	return program;
 }
 
+auto GenerateVoxelData(uint32_t* data) -> void
+{
+	for(size_t y = 0u; y < 32u; y++)
+	{
+		for(size_t z = 0u; z < 32u; z++)
+		{
+			for(size_t x = 0u; x < 32u; x++)
+			{
+				data[y * 32u * 32u + z * 32u + x] = (glm::max(x, 31u - z) >= y);
+			}
+		}
+	}
+}
+
 auto main(int argc, char* argv[]) -> int
 {
 	static constexpr glm::uvec2 ScreenSize = glm::uvec2(1280u, 720u);
@@ -108,6 +122,13 @@ auto main(int argc, char* argv[]) -> int
 	glBindBufferBase(GL_UNIFORM_BUFFER, 1u, screenPropertiesBuffer);
 	ScreenProperties& screenProperties = *static_cast<ScreenProperties*>(glMapNamedBufferRange(screenPropertiesBuffer, 0, sizeof(ScreenProperties), GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT));
 	screenProperties.Size = ScreenSize;
+
+	GLuint voxelDataBuffer;
+	glCreateBuffers(1, &voxelDataBuffer);
+	glNamedBufferStorage(voxelDataBuffer, sizeof(uint32_t) * 32u * 32u * 32u, nullptr, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0u, voxelDataBuffer);
+	uint32_t* voxelData = static_cast<uint32_t*>(glMapNamedBufferRange(voxelDataBuffer, 0u, sizeof(uint32_t) * 32u * 32u * 32u, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT));
+	GenerateVoxelData(voxelData);
 
 	GLsync bufferUploadFence = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0u);
 
@@ -161,6 +182,8 @@ auto main(int argc, char* argv[]) -> int
 
 	glDeleteVertexArrays(1, &dummyVertexArray);
 
+	glUnmapNamedBuffer(voxelDataBuffer);
+	glDeleteBuffers(1, &voxelDataBuffer);
 	glUnmapNamedBuffer(screenPropertiesBuffer);
 	glDeleteBuffers(1, &screenPropertiesBuffer);
 	glUnmapNamedBuffer(projectionPropertiesBuffer);
