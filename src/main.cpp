@@ -84,7 +84,7 @@ auto GenerateVoxelData(uint32_t* data) -> void
 		{
 			for(size_t x = 0u; x < 32u; x++)
 			{
-				data[y * 32u * 32u + z * 32u + x] = (glm::max(x, 31u - z) >= y);
+				data[y * 32u * 32u + z * 32u + x] = ((x + (31u - z)) >= y);
 			}
 		}
 	}
@@ -111,9 +111,9 @@ auto main(int argc, char* argv[]) -> int
 	glNamedBufferStorage(projectionPropertiesBuffer, sizeof(ProjectionProperties), nullptr, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
 	glBindBufferBase(GL_UNIFORM_BUFFER, 0u, projectionPropertiesBuffer);
 	ProjectionProperties& projectionProperties = *static_cast<ProjectionProperties*>(glMapNamedBufferRange(projectionPropertiesBuffer, 0, sizeof(ProjectionProperties), GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT));
-	projectionProperties.View = glm::lookAt(glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+	projectionProperties.View = glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.5f, -0.8f, -1.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 	projectionProperties.ViewInv = glm::inverse(projectionProperties.View);
-	projectionProperties.Proj = glm::perspective(glm::radians(90.0f), static_cast<float>(ScreenSize.x) / static_cast<float>(ScreenSize.y), 0.1f, 1000.0f);
+	projectionProperties.Proj = glm::perspective(glm::radians(70.0f), static_cast<float>(ScreenSize.x) / static_cast<float>(ScreenSize.y), 0.1f, 1000.0f);
 	projectionProperties.ProjInv = glm::inverse(projectionProperties.Proj);
 
 	GLuint screenPropertiesBuffer;
