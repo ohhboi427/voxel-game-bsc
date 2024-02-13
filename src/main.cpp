@@ -1,3 +1,5 @@
+#include "renderer/Buffer.h"
+
 #include <glad/gl.h>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
@@ -76,7 +78,14 @@ auto loadProgram(const std::unordered_map<GLenum, std::filesystem::path>& paths)
 	return program;
 }
 
-auto GenerateVoxelData(uint32_t* data) -> void
+struct Chunk
+{
+	static constexpr size_t Size = 32u;
+
+	uint32_t Voxels[Size * Size * Size];
+};
+
+auto GenerateVoxelData(Chunk& chunk) -> void
 {
 	for(size_t y = 0u; y < 32u; y++)
 	{
@@ -84,7 +93,7 @@ auto GenerateVoxelData(uint32_t* data) -> void
 		{
 			for(size_t x = 0u; x < 32u; x++)
 			{
-				data[y * 32u * 32u + z * 32u + x] = ((x + (31u - z)) >= y);
+				chunk.Voxels[y * 32u * 32u + z * 32u + x] = (glm::max(x, 31u - z) >= y);
 			}
 		}
 	}
@@ -106,28 +115,22 @@ auto main(int argc, char* argv[]) -> int
 	glfwMakeContextCurrent(window);
 	gladLoadGL(glfwGetProcAddress);
 
-	GLuint projectionPropertiesBuffer;
-	glCreateBuffers(1, &projectionPropertiesBuffer);
-	glNamedBufferStorage(projectionPropertiesBuffer, sizeof(ProjectionProperties), nullptr, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
-	glBindBufferBase(GL_UNIFORM_BUFFER, 0u, projectionPropertiesBuffer);
-	ProjectionProperties& projectionProperties = *static_cast<ProjectionProperties*>(glMapNamedBufferRange(projectionPropertiesBuffer, 0, sizeof(ProjectionProperties), GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT));
-	projectionProperties.View = glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.5f, -0.8f, -1.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+	Buffer projectionPropertiesBuffer(sizeof(ProjectionProperties), nullptr, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
+	projectionPropertiesBuffer.Bind(GL_UNIFORM_BUFFER, 0u);
+	auto& projectionProperties = *projectionPropertiesBuffer.GetMappedStorage<ProjectionProperties>();
+	projectionProperties.View = glm::lookAt(glm::vec3(-16.0f, 48.0f, 72.0f), glm::vec3(16.0f, 16.0f, 16.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 	projectionProperties.ViewInv = glm::inverse(projectionProperties.View);
 	projectionProperties.Proj = glm::perspective(glm::radians(70.0f), static_cast<float>(ScreenSize.x) / static_cast<float>(ScreenSize.y), 0.1f, 1000.0f);
 	projectionProperties.ProjInv = glm::inverse(projectionProperties.Proj);
 
-	GLuint screenPropertiesBuffer;
-	glCreateBuffers(1, &screenPropertiesBuffer);
-	glNamedBufferStorage(screenPropertiesBuffer, sizeof(ScreenProperties), nullptr, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
-	glBindBufferBase(GL_UNIFORM_BUFFER, 1u, screenPropertiesBuffer);
-	ScreenProperties& screenProperties = *static_cast<ScreenProperties*>(glMapNamedBufferRange(screenPropertiesBuffer, 0, sizeof(ScreenProperties), GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT));
+	Buffer screenPropertiesBuffer(sizeof(ScreenProperties), nullptr, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
+	screenPropertiesBuffer.Bind(GL_UNIFORM_BUFFER, 1u);
+	auto& screenProperties = *screenPropertiesBuffer.GetMappedStorage<ScreenProperties>();
 	screenProperties.Size = ScreenSize;
 
-	GLuint voxelDataBuffer;
-	glCreateBuffers(1, &voxelDataBuffer);
-	glNamedBufferStorage(voxelDataBuffer, sizeof(uint32_t) * 32u * 32u * 32u, nullptr, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0u, voxelDataBuffer);
-	uint32_t* voxelData = static_cast<uint32_t*>(glMapNamedBufferRange(voxelDataBuffer, 0u, sizeof(uint32_t) * 32u * 32u * 32u, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT));
+	Buffer voxelDataBuffer(sizeof(Chunk), nullptr, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
+	voxelDataBuffer.Bind(GL_SHADER_STORAGE_BUFFER, 0u);
+	auto& voxelData = *voxelDataBuffer.GetMappedStorage<Chunk>();
 	GenerateVoxelData(voxelData);
 
 	GLsync bufferUploadFence = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0u);
@@ -138,9 +141,9 @@ auto main(int argc, char* argv[]) -> int
 	glTextureParameteri(renderTargetTexture, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glTextureParameteri(renderTargetTexture, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTextureParameteri(renderTargetTexture, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTextureStorage2D(renderTargetTexture, 1, GL_RGBA32F, static_cast<GLsizei>(ScreenSize.x), static_cast<GLsizei>(ScreenSize.y));
+	glTextureStorage2D(renderTargetTexture, 1, GL_RGBA16F, static_cast<GLsizei>(ScreenSize.x), static_cast<GLsizei>(ScreenSize.y));
 	glBindTextureUnit(0u, renderTargetTexture);
-	glBindImageTexture(0u, renderTargetTexture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
+	glBindImageTexture(0u, renderTargetTexture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
 
 	GLuint raygenProgram = loadProgram(
 		{
@@ -181,13 +184,6 @@ auto main(int argc, char* argv[]) -> int
 	glDeleteProgram(screenProgram);
 
 	glDeleteVertexArrays(1, &dummyVertexArray);
-
-	glUnmapNamedBuffer(voxelDataBuffer);
-	glDeleteBuffers(1, &voxelDataBuffer);
-	glUnmapNamedBuffer(screenPropertiesBuffer);
-	glDeleteBuffers(1, &screenPropertiesBuffer);
-	glUnmapNamedBuffer(projectionPropertiesBuffer);
-	glDeleteBuffers(1, &projectionPropertiesBuffer);
 
 	glfwDestroyWindow(window);
 
