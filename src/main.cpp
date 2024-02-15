@@ -1,20 +1,10 @@
 #include "renderer/Buffer.h"
+#include "renderer/Shader.h"
 
 #include <glad/gl.h>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 #include <glm/ext.hpp>
-
-#include <filesystem>
-
-#include <vector>
-#include <unordered_map>
-
-#include <string>
-
-#include <fstream>
-
-#include <cstdint>
 
 struct ProjectionProperties
 {
@@ -28,55 +18,6 @@ struct ScreenProperties
 {
 	glm::uvec2 Size;
 };
-
-auto loadTextFile(const std::filesystem::path& path) -> std::string
-{
-	std::string text;
-
-	if(std::ifstream file(path); file.good())
-	{
-		file.seekg(0, std::ios::end);
-
-		if(std::streampos size = file.tellg(); size != -1)
-		{
-			file.seekg(0, std::ios::beg);
-
-			text.resize(static_cast<size_t>(size));
-			file.read(text.data(), static_cast<std::streamsize>(size));
-		}
-	}
-
-	return text;
-}
-
-auto loadProgram(const std::unordered_map<GLenum, std::filesystem::path>& paths) -> GLuint
-{
-	GLuint program = glCreateProgram();
-
-	std::vector<GLuint> shaders;
-	for(const auto& [type, path] : paths)
-	{
-		GLuint shader = shaders.emplace_back(glCreateShader(type));
-
-		std::string source = loadTextFile(path);
-		const GLchar* sourceCStr = source.c_str();
-		glShaderSource(shader, 1, &sourceCStr, nullptr);
-
-		glCompileShader(shader);
-
-		glAttachShader(program, shader);
-	}
-
-	glLinkProgram(program);
-
-	for(const auto& shader : shaders)
-	{
-		glDetachShader(program, shader);
-		glDeleteShader(shader);
-	}
-
-	return program;
-}
 
 struct Chunk
 {
@@ -145,18 +86,14 @@ auto main(int argc, char* argv[]) -> int
 	glBindTextureUnit(0u, renderTargetTexture);
 	glBindImageTexture(0u, renderTargetTexture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
 
-	GLuint raygenProgram = loadProgram(
-		{
-			{ GL_COMPUTE_SHADER, "src/shaders/Raygen.comp" },
-		}
-	);
+	Shader raygenShader({
+		{ GL_COMPUTE_SHADER, "res/shaders/Raygen.comp" },
+	});
 
-	GLuint screenProgram = loadProgram(
-		{
-			{ GL_VERTEX_SHADER, "src/shaders/Screen.vert" },
-			{ GL_FRAGMENT_SHADER, "src/shaders/Screen.frag" },
-		}
-	);
+	Shader screenShader({
+		{ GL_VERTEX_SHADER, "res/shaders/Screen.vert" },
+		{ GL_FRAGMENT_SHADER, "res/shaders/Screen.frag" },
+	});
 
 	GLuint dummyVertexArray;
 	glCreateVertexArrays(1, &dummyVertexArray);
@@ -168,20 +105,17 @@ auto main(int argc, char* argv[]) -> int
 	{
 		glfwPollEvents();
 
-		glUseProgram(raygenProgram);
+		raygenShader.Use();
 		glDispatchCompute(static_cast<GLuint>(ScreenSize.x / 8u), static_cast<GLuint>(ScreenSize.y / 8u), 1u);
 		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
-		glUseProgram(screenProgram);
+		screenShader.Use();
 		glDrawArrays(GL_TRIANGLES, 0, 3);
 
 		glfwSwapBuffers(window);
 	}
 
 	glDeleteTextures(1, &renderTargetTexture);
-
-	glDeleteProgram(raygenProgram);
-	glDeleteProgram(screenProgram);
 
 	glDeleteVertexArrays(1, &dummyVertexArray);
 
