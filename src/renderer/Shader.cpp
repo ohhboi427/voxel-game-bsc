@@ -42,6 +42,19 @@ Shader::Shader(const Sources& sources)
 
 		glCompileShader(shader);
 
+		GLint status;
+		glGetShaderiv(shader, GL_COMPILE_STATUS, &status);
+		if(status != GL_TRUE)
+		{
+			GLint length;
+			glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &length);
+
+			std::string str(static_cast<size_t>(length) - 1u, '\0');
+			glGetShaderInfoLog(shader, length, nullptr, str.data());
+
+			printf("%s\n", str.c_str());
+		}
+
 		glAttachShader(m_handle, shader);
 	}
 

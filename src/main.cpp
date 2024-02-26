@@ -1,6 +1,8 @@
 #include "renderer/Buffer.h"
 #include "renderer/Shader.h"
 
+#include "utility/Octree.h"
+
 #include <glad/gl.h>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
@@ -19,22 +21,17 @@ struct ScreenProperties
 	glm::uvec2 Size;
 };
 
-struct Chunk
-{
-	static constexpr size_t Size = 32u;
-
-	uint32_t Voxels[Size * Size * Size];
-};
+using Chunk = Octree<5u>;
 
 auto GenerateVoxelData(Chunk& chunk) -> void
 {
-	for(size_t y = 0u; y < 32u; y++)
+	for(uint8_t y = 0u; y < Chunk::Size; y++)
 	{
-		for(size_t z = 0u; z < 32u; z++)
+		for(uint8_t z = 0u; z < Chunk::Size; z++)
 		{
-			for(size_t x = 0u; x < 32u; x++)
+			for(uint8_t x = 0u; x < Chunk::Size; x++)
 			{
-				chunk.Voxels[y * 32u * 32u + z * 32u + x] = (glm::max(x, 31u - z) >= y);
+				chunk.Set(x, y, z, x >= y);
 			}
 		}
 	}
@@ -69,10 +66,15 @@ auto main(int argc, char* argv[]) -> int
 	auto& screenProperties = *screenPropertiesBuffer.GetMappedStorage<ScreenProperties>();
 	screenProperties.Size = ScreenSize;
 
-	Buffer voxelDataBuffer(sizeof(Chunk), nullptr, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
+	// Buffer voxelDataBuffer(sizeof(Chunk), nullptr, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
+	// voxelDataBuffer.Bind(GL_SHADER_STORAGE_BUFFER, 0u);
+	// auto& voxelData = *voxelDataBuffer.GetMappedStorage<Chunk>();
+	// GenerateVoxelData(voxelData);
+
+	Chunk chunk;
+	GenerateVoxelData(chunk);
+	Buffer voxelDataBuffer(chunk.DataSize(), chunk.Data());
 	voxelDataBuffer.Bind(GL_SHADER_STORAGE_BUFFER, 0u);
-	auto& voxelData = *voxelDataBuffer.GetMappedStorage<Chunk>();
-	GenerateVoxelData(voxelData);
 
 	GLsync bufferUploadFence = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0u);
 
@@ -88,12 +90,12 @@ auto main(int argc, char* argv[]) -> int
 
 	Shader raygenShader({
 		{ GL_COMPUTE_SHADER, "res/shaders/Raygen.comp" },
-	});
+		});
 
 	Shader screenShader({
 		{ GL_VERTEX_SHADER, "res/shaders/Screen.vert" },
 		{ GL_FRAGMENT_SHADER, "res/shaders/Screen.frag" },
-	});
+		});
 
 	GLuint dummyVertexArray;
 	glCreateVertexArrays(1, &dummyVertexArray);

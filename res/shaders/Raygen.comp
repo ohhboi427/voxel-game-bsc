@@ -15,7 +15,7 @@ layout(binding = 1, std140) uniform ScreenProperties
 
 layout(binding = 0, std430) buffer VoxelDataStorage
 {
-	uint VoxelData[32 * 32 * 32];
+	uint VoxelData[];
 };
 
 layout(binding = 0, rgba16f) uniform image2D u_renderedImage;
@@ -60,6 +60,78 @@ vec2 RayBoxIntersection(vec3 rayOrigin, vec3 rayDirection, vec3 boundsMin, vec3 
 
 	return vec2(tmin, tmax);
 }
+
+uint GetVoxelData(uint index)
+{
+	uint indexInInt = (index % 4);
+
+	return (VoxelData[(index / 4)] & (0xFF << indexInInt * 8)) >> (indexInInt * 8);
+}
+
+uint PopCountByte(uint byte, uint offset, uint count)
+{
+	uint mask = ~(~0 << count) << offset;
+	byte &= mask;
+
+	return bitCount(byte);
+}
+
+uint PopCountRange(uint begin, uint end)
+{
+	uint sum = 0;
+
+	while(begin < end)
+	{
+		sum += bitCount(GetVoxelData(begin));
+
+		++begin;
+	}
+
+	return sum;
+}
+
+bool GetVoxel_(ivec3 coordinate)
+{
+	uint headIndex = 0;
+	uint parentIndex = 0;
+	uint childIndexInParent = 8;
+
+	uint _half = 16;
+	while(_half >= 1)
+	{
+		uint childIndex =
+			uint(coordinate.x >= _half) |
+			(uint(coordinate.y >= _half) << 1) |
+			(uint(coordinate.z >= _half) << 2);
+
+		coordinate.x -= int(coordinate.x >= _half) * int(_half);
+		coordinate.y -= int(coordinate.y >= _half) * int(_half);
+		coordinate.z -= int(coordinate.z >= _half) * int(_half);
+
+		uint child_mask = 1 << childIndex;
+
+		if((GetVoxelData(headIndex) & child_mask) == 0)
+		{
+			return false;
+		}
+
+		uint skipCount =
+			PopCountByte(GetVoxelData(parentIndex), childIndexInParent + 1, 8) + // The number of children on the same layer after the current.
+			PopCountRange(parentIndex + 1, headIndex) + // The number of nodes between the head and parent.
+			PopCountByte(GetVoxelData(headIndex), 0, childIndex) + // The number of children of head.
+			1; // The head.
+
+		childIndexInParent = childIndex;
+
+		parentIndex = headIndex;
+		headIndex += skipCount;
+
+		_half /= 2;
+	}
+
+	return true;
+}
+
 
 bool GetVoxel(ivec3 position)
 {
@@ -129,7 +201,7 @@ bool RayVoxelIntersection(vec3 rayOrigin, vec3 rayDirection, out RayHitInfo hitI
 			}
 		}
 
-		if(GetVoxel(mapPosition))
+		if(GetVoxel_(mapPosition))
 		{
 			hitInfo.Point = rayOrigin + hitInfo.Distance * rayDirection;
 			return true;
