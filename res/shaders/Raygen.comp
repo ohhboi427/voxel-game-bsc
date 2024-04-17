@@ -1,5 +1,7 @@
 #version 460 core
 
+const uint CHUNK_SIZE = 32;
+
 layout(binding = 0, std140) uniform ProjectionProperties
 {
 	mat4 View;
@@ -51,7 +53,7 @@ vec2 RayBoxIntersection(vec3 rayOrigin, vec3 rayDirection, vec3 boundsMin, vec3 
 	{
 		return vec2(-1.0);
 	}
-	
+
 	// Ray inside box
 	if(tmin < 0.0)
 	{
@@ -61,7 +63,7 @@ vec2 RayBoxIntersection(vec3 rayOrigin, vec3 rayDirection, vec3 boundsMin, vec3 
 	return vec2(tmin, tmax);
 }
 
-uint GetVoxelData(uint index)
+uint GetByte(uint index)
 {
 	uint indexInInt = (index % 4);
 
@@ -82,7 +84,7 @@ uint PopCountRange(uint begin, uint end)
 
 	while(begin < end)
 	{
-		sum += bitCount(GetVoxelData(begin));
+		sum += bitCount(GetByte(begin));
 
 		++begin;
 	}
@@ -90,35 +92,35 @@ uint PopCountRange(uint begin, uint end)
 	return sum;
 }
 
-bool GetVoxel_(ivec3 coordinate)
+bool GetVoxel(ivec3 coordinate)
 {
 	uint headIndex = 0;
 	uint parentIndex = 0;
 	uint childIndexInParent = 8;
 
-	uint _half = 16;
-	while(_half >= 1)
+	uint nodeHalfSize = CHUNK_SIZE / 2;
+	while(nodeHalfSize >= 1)
 	{
 		uint childIndex =
-			uint(coordinate.x >= _half) |
-			(uint(coordinate.y >= _half) << 1) |
-			(uint(coordinate.z >= _half) << 2);
+			uint(coordinate.x >= nodeHalfSize) |
+			(uint(coordinate.y >= nodeHalfSize) << 1) |
+			(uint(coordinate.z >= nodeHalfSize) << 2);
 
-		coordinate.x -= int(coordinate.x >= _half) * int(_half);
-		coordinate.y -= int(coordinate.y >= _half) * int(_half);
-		coordinate.z -= int(coordinate.z >= _half) * int(_half);
+		coordinate.x -= int(coordinate.x >= nodeHalfSize) * int(nodeHalfSize);
+		coordinate.y -= int(coordinate.y >= nodeHalfSize) * int(nodeHalfSize);
+		coordinate.z -= int(coordinate.z >= nodeHalfSize) * int(nodeHalfSize);
 
 		uint child_mask = 1 << childIndex;
 
-		if((GetVoxelData(headIndex) & child_mask) == 0)
+		if((GetByte(headIndex) & child_mask) == 0)
 		{
 			return false;
 		}
 
 		uint skipCount =
-			PopCountByte(GetVoxelData(parentIndex), childIndexInParent + 1, 8) + // The number of children on the same layer after the current.
+			PopCountByte(GetByte(parentIndex), childIndexInParent + 1, 8) + // The number of children on the same layer after the current.
 			PopCountRange(parentIndex + 1, headIndex) + // The number of nodes between the head and parent.
-			PopCountByte(GetVoxelData(headIndex), 0, childIndex) + // The number of children of head.
+			PopCountByte(GetByte(headIndex), 0, childIndex) + // The number of children of head.
 			1; // The head.
 
 		childIndexInParent = childIndex;
@@ -126,26 +128,16 @@ bool GetVoxel_(ivec3 coordinate)
 		parentIndex = headIndex;
 		headIndex += skipCount;
 
-		_half /= 2;
+		nodeHalfSize /= 2;
 	}
 
 	return true;
 }
 
 
-bool GetVoxel(ivec3 position)
-{
-	if(position.x < 0 || position.x >= 32 || position.y < 0 || position.y >= 32 || position.z < 0 || position.z >= 32)
-	{
-		return false;
-	}
-
-	return VoxelData[position.y * 32 * 32 + position.z * 32 + position.x] > 0;
-}
-
 bool RayVoxelIntersection(vec3 rayOrigin, vec3 rayDirection, out RayHitInfo hitInfo)
 {
-	vec2 boxIntersectTest = RayBoxIntersection(rayOrigin, rayDirection, vec3(0.0, 0.0, 0.0), vec3(32.0, 32.0, 32.0));
+	vec2 boxIntersectTest = RayBoxIntersection(rayOrigin, rayDirection, vec3(0.0), vec3(CHUNK_SIZE));
 	if(boxIntersectTest.x < 0.0)
 	{
 		return false;
@@ -201,7 +193,7 @@ bool RayVoxelIntersection(vec3 rayOrigin, vec3 rayDirection, out RayHitInfo hitI
 			}
 		}
 
-		if(GetVoxel_(mapPosition))
+		if(GetVoxel(mapPosition))
 		{
 			hitInfo.Point = rayOrigin + hitInfo.Distance * rayDirection;
 			return true;
@@ -225,6 +217,9 @@ vec3 GetRayDirection(vec2 uv)
 	return normalize(worldDir);
 }
 
+const float AmbientLight = 0.05;
+const float SunLight = 1.0;
+
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 void main()
 {
@@ -232,20 +227,14 @@ void main()
 	const vec3 rayOrigin = u_projectionProperties.ViewInv[3].xyz;
 	const vec3 rayDirection = GetRayDirection(uv);
 
-	vec3 color = vec3(0.0, 0.0, 0.0);
-	color = rayDirection;
-
-	for(uint i = 0; i < 4; i++)
-	{
-		color = GetRayDirection(uv);
-	}
+	vec3 color = rayDirection;
 
 	RayHitInfo hitInfo;
 	if(RayVoxelIntersection(rayOrigin, rayDirection, hitInfo))
 	{
 		const vec3 lightDirection = normalize(hitInfo.Point - vec3(0.0, 32.0, 0.0));
 
-		float lightStrength = dot(hitInfo.Normal, -lightDirection);
+		float lightStrength = dot(hitInfo.Normal, -lightDirection) * SunLight + AmbientLight;
 
 		color = vec3(lightStrength);
 	}

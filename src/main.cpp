@@ -66,11 +66,6 @@ auto main(int argc, char* argv[]) -> int
 	auto& screenProperties = *screenPropertiesBuffer.GetMappedStorage<ScreenProperties>();
 	screenProperties.Size = ScreenSize;
 
-	// Buffer voxelDataBuffer(sizeof(Chunk), nullptr, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
-	// voxelDataBuffer.Bind(GL_SHADER_STORAGE_BUFFER, 0u);
-	// auto& voxelData = *voxelDataBuffer.GetMappedStorage<Chunk>();
-	// GenerateVoxelData(voxelData);
-
 	Chunk chunk;
 	GenerateVoxelData(chunk);
 	Buffer voxelDataBuffer(chunk.DataSize(), chunk.Data());
@@ -90,18 +85,18 @@ auto main(int argc, char* argv[]) -> int
 
 	Shader raygenShader({
 		{ GL_COMPUTE_SHADER, "res/shaders/Raygen.comp" },
-		});
+	});
 
 	Shader screenShader({
 		{ GL_VERTEX_SHADER, "res/shaders/Screen.vert" },
 		{ GL_FRAGMENT_SHADER, "res/shaders/Screen.frag" },
-		});
+	});
 
 	GLuint dummyVertexArray;
 	glCreateVertexArrays(1, &dummyVertexArray);
 	glBindVertexArray(dummyVertexArray);
 
-	glClientWaitSync(bufferUploadFence, 0u, GL_TIMEOUT_IGNORED);
+	glWaitSync(bufferUploadFence, 0, GL_TIMEOUT_IGNORED);
 
 	while(!glfwWindowShouldClose(window))
 	{
