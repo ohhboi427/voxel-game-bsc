@@ -99,7 +99,7 @@ bool GetVoxel(ivec3 coordinate)
 	uint childIndexInParent = 8;
 
 	uint nodeHalfSize = CHUNK_SIZE / 2;
-	while(nodeHalfSize >= 1)
+	while(nodeHalfSize > 0)
 	{
 		uint childIndex =
 			uint(coordinate.x >= nodeHalfSize) |
@@ -110,9 +110,11 @@ bool GetVoxel(ivec3 coordinate)
 		coordinate.y -= int(coordinate.y >= nodeHalfSize) * int(nodeHalfSize);
 		coordinate.z -= int(coordinate.z >= nodeHalfSize) * int(nodeHalfSize);
 
-		uint child_mask = 1 << childIndex;
+		nodeHalfSize /= 2;
 
-		if((GetByte(headIndex) & child_mask) == 0)
+		uint childMask = 1 << childIndex;
+
+		if((GetByte(headIndex) & childMask) == 0)
 		{
 			return false;
 		}
@@ -127,13 +129,118 @@ bool GetVoxel(ivec3 coordinate)
 
 		parentIndex = headIndex;
 		headIndex += skipCount;
-
-		nodeHalfSize /= 2;
 	}
 
 	return true;
 }
 
+bool RayOctreeTraversal(vec3 rayOrigin, vec3 rayDirection, out RayHitInfo hitInfo)
+{
+	vec2 boxIntersectTest = RayBoxIntersection(rayOrigin, rayDirection, vec3(0.0), vec3(CHUNK_SIZE));
+	if(boxIntersectTest.x < 0.0)
+	{
+		return false;
+	}
+	rayOrigin += boxIntersectTest.x * rayDirection;
+
+	vec3 absRayDir = abs(rayDirection);
+	vec3 stepSize = abs(1.0 / rayDirection);
+
+	ivec3 mapPosition = ivec3(floor(rayOrigin));
+	ivec3 stepDirection = ivec3(sign(rayDirection));
+
+	vec3 rayLength = abs((mapPosition + max(stepDirection, vec3(0.0)) - rayOrigin) * stepSize);
+
+	hitInfo.Distance = 0.0;
+	int i = 0;
+	while(hitInfo.Distance < (boxIntersectTest.y - boxIntersectTest.x) && i < 50)
+	{
+		++i;
+
+		uint headIndex = 0;
+		uint parentIndex = 0;
+		uint childIndexInParent = 8;
+
+		uint nodeHalfSize = CHUNK_SIZE / 2;
+		ivec3 midPoint = ivec3(nodeHalfSize);
+		while(nodeHalfSize > 0)
+		{
+			ivec3 octet = ivec3(greaterThanEqual(rayOrigin, midPoint));
+
+			uint childIndex = octet.x | (octet.y << 1) | (octet.z << 2);
+			uint childMask = 1 << childIndex;
+
+			nodeHalfSize /= 2;
+			midPoint += (octet * 2 - 1) * int(nodeHalfSize);
+
+			if((GetByte(headIndex) & childMask) == 0)
+			{
+				vec3 farCorner = midPoint + stepDirection * nodeHalfSize;
+				vec3 distanceToFarCorner = abs(farCorner - rayOrigin);
+				vec3 d = distanceToFarCorner / absRayDir + 0.00001;
+
+				// hitInfo.Distance = min(min(d.x, d.y), d.z);
+				// hitInfo.Point = rayOrigin + rayDirection * hitInfo.Distance;
+				// return true;
+
+				if(d.x < d.y)
+				{
+					if(d.x < d.z)
+					{
+						rayOrigin += rayDirection * stepSize.x * distanceToFarCorner.x;
+						hitInfo.Distance += d.x;
+						hitInfo.Normal = vec3(-stepDirection.x, 0.0, 0.0);
+					}
+					else
+					{
+						rayOrigin += rayDirection * stepSize.z * distanceToFarCorner.z;
+						hitInfo.Distance += d.z;
+						hitInfo.Normal = vec3(0.0, 0.0, -stepDirection.z);
+					}
+				}
+				else
+				{
+					if(d.x < d.z)
+					{
+						rayOrigin += rayDirection * stepSize.y * distanceToFarCorner.y;
+						hitInfo.Distance += d.y;
+						hitInfo.Normal = vec3(0.0, -stepDirection.y, 0.0);
+					}
+					else
+					{
+						rayOrigin += rayDirection * stepSize.z * distanceToFarCorner.z;
+						hitInfo.Distance += d.z;
+						hitInfo.Normal = vec3(0.0, 0.0, -stepDirection.z);
+					}
+				}
+
+				break;
+			}
+
+
+
+			uint skipCount =
+				PopCountByte(GetByte(parentIndex), childIndexInParent + 1, 8) + // The number of children on the same layer after the current.
+				PopCountRange(parentIndex + 1, headIndex) + // The number of nodes between the head and parent.
+				PopCountByte(GetByte(headIndex), 0, childIndex) + // The number of children of head.
+				1; // The head.
+
+			childIndexInParent = childIndex;
+
+			parentIndex = headIndex;
+			headIndex += skipCount;
+		}
+
+		if(nodeHalfSize == 0)
+		{
+			hitInfo.Point = rayOrigin;
+			// hitInfo.Point = vec3(0.0);
+			return true;
+		}
+	}
+
+	return false;
+}
 
 bool RayVoxelIntersection(vec3 rayOrigin, vec3 rayDirection, out RayHitInfo hitInfo)
 {
@@ -230,13 +337,13 @@ void main()
 	vec3 color = rayDirection;
 
 	RayHitInfo hitInfo;
-	if(RayVoxelIntersection(rayOrigin, rayDirection, hitInfo))
+	if(RayOctreeTraversal(rayOrigin, rayDirection, hitInfo))
 	{
-		const vec3 lightDirection = normalize(hitInfo.Point - vec3(0.0, 32.0, 0.0));
+		// const vec3 lightDirection = normalize(hitInfo.Point - vec3(0.0, 32.0, 0.0));
+		// float lightStrength = dot(hitInfo.Normal, -lightDirection) * SunLight + AmbientLight;
+		// color = vec3(lightStrength);
 
-		float lightStrength = dot(hitInfo.Normal, -lightDirection) * SunLight + AmbientLight;
-
-		color = vec3(lightStrength);
+		color = hitInfo.Point / (CHUNK_SIZE - 1);
 	}
 
 	imageStore(u_renderedImage, ivec2(gl_GlobalInvocationID.xy), vec4(color, 1.0));
