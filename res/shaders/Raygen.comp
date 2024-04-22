@@ -1,7 +1,5 @@
 #version 460 core
 
-const uint CHUNK_SIZE = 32;
-
 layout(binding = 0, std140) uniform ProjectionProperties
 {
 	mat4 View;
@@ -21,6 +19,8 @@ layout(binding = 0, std430) buffer VoxelDataStorage
 };
 
 layout(binding = 0, rgba16f) uniform image2D u_renderedImage;
+
+#include "Octree.glsl"
 
 struct RayHitInfo
 {
@@ -61,77 +61,6 @@ vec2 RayBoxIntersection(vec3 rayOrigin, vec3 rayDirection, vec3 boundsMin, vec3 
 	}
 
 	return vec2(tmin, tmax);
-}
-
-uint GetByte(uint index)
-{
-	uint indexInInt = (index % 4);
-
-	return (VoxelData[(index / 4)] & (0xFF << indexInInt * 8)) >> (indexInInt * 8);
-}
-
-uint PopCountByte(uint byte, uint offset, uint count)
-{
-	uint mask = ~(~0 << count) << offset;
-	byte &= mask;
-
-	return bitCount(byte);
-}
-
-uint PopCountRange(uint begin, uint end)
-{
-	uint sum = 0;
-
-	while(begin < end)
-	{
-		sum += bitCount(GetByte(begin));
-
-		++begin;
-	}
-
-	return sum;
-}
-
-bool GetVoxel(ivec3 coordinate)
-{
-	uint headIndex = 0;
-	uint parentIndex = 0;
-	uint childIndexInParent = 8;
-
-	uint nodeHalfSize = CHUNK_SIZE / 2;
-	while(nodeHalfSize > 0)
-	{
-		uint childIndex =
-			uint(coordinate.x >= nodeHalfSize) |
-			(uint(coordinate.y >= nodeHalfSize) << 1) |
-			(uint(coordinate.z >= nodeHalfSize) << 2);
-
-		coordinate.x -= int(coordinate.x >= nodeHalfSize) * int(nodeHalfSize);
-		coordinate.y -= int(coordinate.y >= nodeHalfSize) * int(nodeHalfSize);
-		coordinate.z -= int(coordinate.z >= nodeHalfSize) * int(nodeHalfSize);
-
-		nodeHalfSize /= 2;
-
-		uint childMask = 1 << childIndex;
-
-		if((GetByte(headIndex) & childMask) == 0)
-		{
-			return false;
-		}
-
-		uint skipCount =
-			PopCountByte(GetByte(parentIndex), childIndexInParent + 1, 8) + // The number of children on the same layer after the current.
-			PopCountRange(parentIndex + 1, headIndex) + // The number of nodes between the head and parent.
-			PopCountByte(GetByte(headIndex), 0, childIndex) + // The number of children of head.
-			1; // The head.
-
-		childIndexInParent = childIndex;
-
-		parentIndex = headIndex;
-		headIndex += skipCount;
-	}
-
-	return true;
 }
 
 bool RayOctreeTraversal(vec3 rayOrigin, vec3 rayDirection, out RayHitInfo hitInfo)
@@ -179,9 +108,9 @@ bool RayOctreeTraversal(vec3 rayOrigin, vec3 rayDirection, out RayHitInfo hitInf
 				vec3 distanceToFarCorner = abs(farCorner - rayOrigin);
 				vec3 d = distanceToFarCorner / absRayDir + 0.00001;
 
-				// hitInfo.Distance = min(min(d.x, d.y), d.z);
-				// hitInfo.Point = rayOrigin + rayDirection * hitInfo.Distance;
-				// return true;
+				hitInfo.Distance = min(min(d.x, d.y), d.z);
+				hitInfo.Point = rayOrigin + rayDirection * hitInfo.Distance;
+				return true;
 
 				if(d.x < d.y)
 				{

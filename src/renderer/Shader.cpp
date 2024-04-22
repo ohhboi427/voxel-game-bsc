@@ -3,9 +3,9 @@
 #include <glad/gl.h>
 
 #include <fstream>
-
-#include <vector>
+#include <regex>
 #include <string>
+#include <vector>
 
 static auto loadTextFile(const std::filesystem::path& path) -> std::string
 {
@@ -27,6 +27,37 @@ static auto loadTextFile(const std::filesystem::path& path) -> std::string
 	return text;
 }
 
+static auto loadShaderSourceFile(const std::filesystem::path& path) -> std::string
+{
+	static const std::regex rule("#include \"([a-zA-Z]+.[a-zA-Z]+)\"");
+
+	std::string source = loadTextFile(path);
+	std::filesystem::path parent = path.parent_path();
+
+	std::string result;
+	std::smatch match;
+	std::string::const_iterator searchStart = source.cbegin();
+
+	bool hasInclude = false;
+	while(std::regex_search(searchStart, source.cend(), match, rule))
+	{
+		hasInclude = true;
+
+		result += match.prefix().str();
+		result += loadShaderSourceFile(parent / match[1u].str());
+
+		searchStart = match.suffix().first;
+	}
+
+	if(!hasInclude)
+	{
+		return source;
+	}
+
+	result += match.suffix().str();
+	return result;
+}
+
 Shader::Shader(const Sources& sources)
 {
 	m_handle = glCreateProgram();
@@ -36,7 +67,7 @@ Shader::Shader(const Sources& sources)
 	{
 		GLuint shader = shaders.emplace_back(glCreateShader(type));
 
-		std::string source = loadTextFile(path);
+		std::string source = loadShaderSourceFile(path);
 		const GLchar* sourceCStr = source.c_str();
 		glShaderSource(shader, 1, &sourceCStr, nullptr);
 
