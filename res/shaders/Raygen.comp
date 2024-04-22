@@ -266,7 +266,7 @@ void main()
 	vec3 color = rayDirection;
 
 	RayHitInfo hitInfo;
-	if(RayOctreeTraversal(rayOrigin, rayDirection, hitInfo))
+	if(RayVoxelIntersection(rayOrigin, rayDirection, hitInfo))
 	{
 		// const vec3 lightDirection = normalize(hitInfo.Point - vec3(0.0, 32.0, 0.0));
 		// float lightStrength = dot(hitInfo.Normal, -lightDirection) * SunLight + AmbientLight;
