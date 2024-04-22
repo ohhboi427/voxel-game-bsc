@@ -2,9 +2,8 @@
 
 #include "Math.h"
 
-#include <vector>
-
 #include <cstdint>
+#include <vector>
 
 /**
  * @brief A sparse octree of bytes.
@@ -144,12 +143,12 @@ public:
 		m_nodes[headIndex] = value;
 	}
 
-	constexpr auto Data() const noexcept -> const uint8_t*
+	[[nodiscard]] constexpr auto Data() const noexcept -> const uint8_t*
 	{
 		return m_nodes.data();
 	}
 
-	constexpr auto DataSize() const noexcept -> size_t
+	[[nodiscard]] constexpr auto DataSize() const noexcept -> size_t
 	{
 		return m_nodes.size() * sizeof(uint8_t);
 	}

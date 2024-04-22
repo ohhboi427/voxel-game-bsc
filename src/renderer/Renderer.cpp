@@ -2,6 +2,7 @@
 
 #include "Buffer.h"
 #include "Shader.h"
+#include "Window.h"
 #include "../world/Chunk.h"
 
 #include <glad/gl.h>
@@ -25,25 +26,14 @@ namespace
 	};
 }
 
-Renderer::Renderer(const glm::uvec2& screenSize, GLFWwindow* window)
+Renderer::Renderer(const Window& window)
 	: m_window(window)
 {
+	glfwMakeContextCurrent(static_cast<GLFWwindow*>(m_window));
 	gladLoadGL(glfwGetProcAddress);
 
-	m_projectionPropertiesBuffer = std::make_unique<Buffer>(sizeof(ProjectionProperties), nullptr, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
-	m_projectionPropertiesBuffer->Bind(GL_UNIFORM_BUFFER, 0u);
-	auto& projectionProperties = *m_projectionPropertiesBuffer->GetMappedStorage<ProjectionProperties>();
-	projectionProperties.View = glm::lookAt(glm::vec3(-16.0f, 48.0f, 72.0f), glm::vec3(16.0f, 16.0f, 16.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-	projectionProperties.ViewInv = glm::inverse(projectionProperties.View);
-	projectionProperties.Proj = glm::perspective(glm::radians(70.0f), static_cast<float>(screenSize.x) / static_cast<float>(screenSize.y), 0.1f, 1000.0f);
-	projectionProperties.ProjInv = glm::inverse(projectionProperties.Proj);
-
-	m_screenPropertiesBuffer = std::make_unique<Buffer>(sizeof(ScreenProperties), nullptr, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
-	m_screenPropertiesBuffer->Bind(GL_UNIFORM_BUFFER, 1u);
-	auto& screenProperties = *m_screenPropertiesBuffer->GetMappedStorage<ScreenProperties>();
-	screenProperties.Size = screenSize;
-
-	GLsync bufferUploadFence = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0u);
+	UploadProjectionData();
+	GLsync projectionDataFence = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0u);
 
 	m_chunkDataBuffer = std::make_unique<Buffer>(134217728, nullptr, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
 	m_chunkDataBuffer->Bind(GL_SHADER_STORAGE_BUFFER, 0u);
@@ -54,7 +44,7 @@ Renderer::Renderer(const glm::uvec2& screenSize, GLFWwindow* window)
 	glTextureParameteri(m_renderTexture, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glTextureParameteri(m_renderTexture, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTextureParameteri(m_renderTexture, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTextureStorage2D(m_renderTexture, 1, GL_RGBA16F, static_cast<GLsizei>(screenSize.x), static_cast<GLsizei>(screenSize.y));
+	glTextureStorage2D(m_renderTexture, 1, GL_RGBA16F, static_cast<GLsizei>(m_window.GetSize().x), static_cast<GLsizei>(m_window.GetSize().y));
 	glBindTextureUnit(0u, m_renderTexture);
 	glBindImageTexture(0u, m_renderTexture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
 
@@ -75,7 +65,7 @@ Renderer::Renderer(const glm::uvec2& screenSize, GLFWwindow* window)
 	glCreateVertexArrays(1, &m_dummyVertexArray);
 	glBindVertexArray(m_dummyVertexArray);
 
-	glWaitSync(bufferUploadFence, 0, GL_TIMEOUT_IGNORED);
+	glWaitSync(projectionDataFence, 0, GL_TIMEOUT_IGNORED);
 }
 
 Renderer::~Renderer()
@@ -98,14 +88,28 @@ auto Renderer::RemoveChunk(const glm::uvec2& coordinate) -> void
 
 auto Renderer::Render() -> void
 {
-	auto& screenProperties = *m_screenPropertiesBuffer->GetMappedStorage<ScreenProperties>();
-
 	m_raygenShader->Use();
-	glDispatchCompute(static_cast<GLuint>(screenProperties.Size.x / 8u), static_cast<GLuint>(screenProperties.Size.y / 8u), 1u);
+	glDispatchCompute(static_cast<GLuint>(m_window.GetSize().x / 8u), static_cast<GLuint>(m_window.GetSize().y / 8u), 1u);
 	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
 	m_screenShader->Use();
 	glDrawArrays(GL_TRIANGLES, 0, 3);
 
-	glfwSwapBuffers(m_window);
+	glfwSwapBuffers(static_cast<GLFWwindow*>(m_window));
+}
+
+auto Renderer::UploadProjectionData() -> void
+{
+	m_projectionPropertiesBuffer = std::make_unique<Buffer>(sizeof(ProjectionProperties), nullptr, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
+	m_projectionPropertiesBuffer->Bind(GL_UNIFORM_BUFFER, 0u);
+	auto& projectionProperties = *m_projectionPropertiesBuffer->GetMappedStorage<ProjectionProperties>();
+	projectionProperties.View = glm::lookAt(glm::vec3(-16.0f, 48.0f, 72.0f), glm::vec3(16.0f, 16.0f, 16.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+	projectionProperties.ViewInv = glm::inverse(projectionProperties.View);
+	projectionProperties.Proj = glm::perspective(glm::radians(70.0f), static_cast<float>(m_window.GetSize().x) / static_cast<float>(m_window.GetSize().y), 0.1f, 1000.0f);
+	projectionProperties.ProjInv = glm::inverse(projectionProperties.Proj);
+
+	m_screenPropertiesBuffer = std::make_unique<Buffer>(sizeof(ScreenProperties), nullptr, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
+	m_screenPropertiesBuffer->Bind(GL_UNIFORM_BUFFER, 1u);
+	auto& screenProperties = *m_screenPropertiesBuffer->GetMappedStorage<ScreenProperties>();
+	screenProperties.Size = m_window.GetSize();
 }

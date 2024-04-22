@@ -1,10 +1,8 @@
 #pragma once
 
-#include <filesystem>
-
-#include <unordered_map>
-
 #include <cstdint>
+#include <filesystem>
+#include <unordered_map>
 
 /**
  * @brief OpenGL program wrapper.

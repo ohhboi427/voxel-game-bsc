@@ -8,14 +8,19 @@
 
 class Buffer;
 class Shader;
-
-struct GLFWwindow;
+class Window;
 
 class Renderer
 {
 public:
-	Renderer(const glm::uvec2& screenSize, GLFWwindow* window);
+	Renderer(const Window& window);
 	~Renderer();
+
+	Renderer(const Renderer&) = delete;
+	auto operator=(const Renderer&) -> Renderer& = delete;
+
+	Renderer(Renderer&&) noexcept = delete;
+	auto operator=(Renderer&&) noexcept -> Renderer& = delete;
 
 	auto SubmitChunk(const glm::uvec2& coordinate, const Chunk& chunk) -> void;
 	auto RemoveChunk(const glm::uvec2& coordinate) -> void;
@@ -23,7 +28,7 @@ public:
 	auto Render() -> void;
 
 private:
-	GLFWwindow* m_window;
+	const Window& m_window;
 	std::unique_ptr<Buffer> m_projectionPropertiesBuffer;
 	std::unique_ptr<Buffer> m_screenPropertiesBuffer;
 	std::unique_ptr<Buffer> m_chunkDataBuffer;
@@ -31,4 +36,6 @@ private:
 	std::unique_ptr<Shader> m_raygenShader;
 	uint32_t m_renderTexture;
 	uint32_t m_dummyVertexArray;
+
+	auto UploadProjectionData() -> void;
 };

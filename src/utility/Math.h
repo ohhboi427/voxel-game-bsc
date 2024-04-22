@@ -1,7 +1,6 @@
 #pragma once
 
 #include <bit>
-
 #include <cstdint>
 
 /**
@@ -13,7 +12,7 @@
  *
  * @return The number of set bits.
  */
-constexpr auto PopCountByte(uint8_t byte, uint8_t offset = 0u, uint8_t count = 8u) -> size_t
+[[nodiscard]] constexpr auto PopCountByte(uint8_t byte, uint8_t offset = 0u, uint8_t count = 8u) noexcept -> size_t
 {
 	uint8_t mask = ~(~0u << count) << offset;
 	byte &= mask;
@@ -29,7 +28,7 @@ constexpr auto PopCountByte(uint8_t byte, uint8_t offset = 0u, uint8_t count = 8
  *
  * @return The number of set bits.
  */
-constexpr auto PopCountRange(const uint8_t* begin, const uint8_t* end) -> size_t
+[[nodiscard]] constexpr auto PopCountRange(const uint8_t* begin, const uint8_t* end) noexcept -> size_t
 {
 	uint64_t sum = 0u;
 
@@ -51,7 +50,7 @@ constexpr auto PopCountRange(const uint8_t* begin, const uint8_t* end) -> size_t
  *
  * @return The result of the power.
  */
-constexpr auto PowerConstexpr(uint64_t base, uint64_t exponent) -> uint64_t
+[[nodiscard]] constexpr auto PowerConstexpr(uint64_t base, uint64_t exponent) noexcept -> uint64_t
 {
 	uint64_t result = 1u;
 

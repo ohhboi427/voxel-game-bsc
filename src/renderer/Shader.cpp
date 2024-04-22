@@ -7,55 +7,58 @@
 #include <string>
 #include <vector>
 
-static auto loadTextFile(const std::filesystem::path& path) -> std::string
+namespace
 {
-	std::string text;
-
-	if(std::ifstream file(path); file.good())
+	auto loadTextFile(const std::filesystem::path& path) -> std::string
 	{
-		file.seekg(0, std::ios::end);
+		std::string text;
 
-		if(std::streampos size = file.tellg(); size != -1)
+		if(std::ifstream file(path); file.good())
 		{
-			file.seekg(0, std::ios::beg);
+			file.seekg(0, std::ios::end);
 
-			text.resize(static_cast<size_t>(size));
-			file.read(text.data(), static_cast<std::streamsize>(size));
+			if(std::streampos size = file.tellg(); size != -1)
+			{
+				file.seekg(0, std::ios::beg);
+
+				text.resize(static_cast<size_t>(size));
+				file.read(text.data(), static_cast<std::streamsize>(size));
+			}
 		}
+
+		return text;
 	}
 
-	return text;
-}
-
-static auto loadShaderSourceFile(const std::filesystem::path& path) -> std::string
-{
-	static const std::regex rule("#include \"([a-zA-Z]+.[a-zA-Z]+)\"");
-
-	std::string source = loadTextFile(path);
-	std::filesystem::path parent = path.parent_path();
-
-	std::string result;
-	std::smatch match;
-	std::string::const_iterator searchStart = source.cbegin();
-
-	bool hasInclude = false;
-	while(std::regex_search(searchStart, source.cend(), match, rule))
+	auto loadShaderSourceFile(const std::filesystem::path& path) -> std::string
 	{
-		hasInclude = true;
+		static const std::regex rule("#include \"([a-zA-Z]+.[a-zA-Z]+)\"");
 
-		result += match.prefix().str();
-		result += loadShaderSourceFile(parent / match[1u].str());
+		std::string source = loadTextFile(path);
+		std::filesystem::path parent = path.parent_path();
 
-		searchStart = match.suffix().first;
+		std::string result;
+		std::smatch match;
+		std::string::const_iterator searchStart = source.cbegin();
+
+		bool hasInclude = false;
+		while(std::regex_search(searchStart, source.cend(), match, rule))
+		{
+			hasInclude = true;
+
+			result += match.prefix().str();
+			result += loadShaderSourceFile(parent / match[1u].str());
+
+			searchStart = match.suffix().first;
+		}
+
+		if(!hasInclude)
+		{
+			return source;
+		}
+
+		result += match.suffix().str();
+		return result;
 	}
-
-	if(!hasInclude)
-	{
-		return source;
-	}
-
-	result += match.suffix().str();
-	return result;
 }
 
 Shader::Shader(const Sources& sources)

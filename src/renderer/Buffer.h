@@ -1,7 +1,5 @@
 #pragma once
 
-#include <type_traits>
-
 #include <cstdint>
 
 /**
@@ -29,10 +27,10 @@ public:
 	~Buffer();
 
 	Buffer(const Buffer&) = delete;
-	auto operator=(const Buffer&)->Buffer & = delete;
+	auto operator=(const Buffer&) -> Buffer& = delete;
 
 	Buffer(Buffer&&) noexcept = delete;
-	auto operator=(Buffer&&) noexcept -> Buffer & = delete;
+	auto operator=(Buffer&&) noexcept -> Buffer& = delete;
 
 	/**
 	 * @brief Retrieves a pointer to the buffer's mapped storage.

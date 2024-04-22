@@ -6,7 +6,7 @@
 
 using Chunk = Octree<5u>;
 
-inline constexpr auto GenerateChunk(const glm::uvec2& coordinate) -> Chunk
+[[nodiscard]] constexpr auto GenerateChunk(const glm::uvec2& coordinate) -> Chunk
 {
 	Chunk chunk;
 
