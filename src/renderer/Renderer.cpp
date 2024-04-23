@@ -10,6 +10,8 @@
 #include <glm/glm.hpp>
 #include <glm/ext.hpp>
 
+using namespace Literals;
+
 namespace
 {
 	struct ProjectionProperties
@@ -35,7 +37,7 @@ Renderer::Renderer(const Window& window)
 	UploadProjectionData();
 	GLsync projectionDataFence = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0u);
 
-	m_chunkDataBuffer = std::make_unique<Buffer>(134217728, nullptr, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
+	m_chunkDataBuffer = std::make_unique<Buffer>(128_mb, nullptr, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
 	m_chunkDataBuffer->Bind(GL_SHADER_STORAGE_BUFFER, 0u);
 
 	m_renderTexture;

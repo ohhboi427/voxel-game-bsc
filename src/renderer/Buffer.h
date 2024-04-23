@@ -102,3 +102,42 @@ private:
 	uint32_t m_mappingFlags;
 	void* m_mappedStorage;
 };
+
+namespace Literals
+{
+	/**
+	 * @brief Forms a literal representing a byte size.
+	 * 
+	 * @param size The number of bytes.
+	 * 
+	 * @return The original value.
+	 */
+	[[nodiscard]] consteval auto operator""_b(uint64_t size) noexcept -> uint64_t
+	{
+		return size;
+	}
+
+	/**
+	 * @brief Forms a literal representing a kilobyte size.
+	 * 
+	 * @param size The number of kilobytes.
+	 * 
+	 * @return The original value multiplies by 1024.
+	 */
+	[[nodiscard]] consteval auto operator""_kb(uint64_t size) noexcept -> uint64_t
+	{
+		return size * 1024u;
+	}
+
+	/**
+	 * @brief Forms a literal representing a megabyte size.
+	 * 
+	 * @param size The number of megabytes.
+	 * 
+	 * @return The original value multiplies by 1048576.
+	 */
+	[[nodiscard]] consteval auto operator""_mb(uint64_t size) noexcept -> uint64_t
+	{
+		return size * 1024u * 1024u;
+	}
+}
