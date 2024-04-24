@@ -9,6 +9,7 @@
 class Buffer;
 class Shader;
 class Window;
+struct Camera;
 
 class Renderer
 {
@@ -24,6 +25,8 @@ public:
 
 	auto SubmitChunk(const glm::uvec2& coordinate, const Chunk& chunk) -> void;
 	auto RemoveChunk(const glm::uvec2& coordinate) -> void;
+
+	auto SetCamera(const Camera& camera) -> void;
 
 	auto Render() -> void;
 

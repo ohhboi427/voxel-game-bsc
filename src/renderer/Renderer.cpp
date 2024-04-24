@@ -3,6 +3,7 @@
 #include "Buffer.h"
 #include "Shader.h"
 #include "Window.h"
+#include "../world/Camera.h"
 #include "../world/Chunk.h"
 
 #include <glad/gl.h>
@@ -60,7 +61,7 @@ Renderer::Renderer(const Window& window)
 		Shader::Sources
 		{
 			{ GL_VERTEX_SHADER, "res/shaders/Screen.vert" },
-			{ GL_FRAGMENT_SHADER, "res/shaders/Screen.frag" },
+		{ GL_FRAGMENT_SHADER, "res/shaders/Screen.frag" },
 		});
 
 	m_dummyVertexArray;
@@ -88,6 +89,26 @@ auto Renderer::SubmitChunk(const glm::uvec2& coordinate, const Chunk& chunk) -> 
 auto Renderer::RemoveChunk(const glm::uvec2& coordinate) -> void
 {}
 
+auto Renderer::SetCamera(const Camera& camera) -> void
+{
+	glm::quat rotation(glm::radians(camera.Rotation));
+
+	auto& projectionProperties = *m_projectionPropertiesBuffer->GetMappedStorage<ProjectionProperties>();
+	projectionProperties.View = glm::lookAt(
+		camera.Position,
+		camera.Position + rotation * glm::vec3(0.0f, 0.0f, -1.0f),
+		glm::vec3(0.0f, 1.0f, 0.0f));
+
+	projectionProperties.Proj = glm::perspective(
+		glm::radians(camera.FieldOfView),
+		static_cast<float>(m_window.GetSize().x) / static_cast<float>(m_window.GetSize().y),
+		0.1f,
+		1000.0f);
+
+	projectionProperties.ViewInv = glm::inverse(projectionProperties.View);
+	projectionProperties.ProjInv = glm::inverse(projectionProperties.Proj);
+}
+
 auto Renderer::Render() -> void
 {
 	m_raygenShader->Use();
@@ -104,11 +125,13 @@ auto Renderer::UploadProjectionData() -> void
 {
 	m_projectionPropertiesBuffer = std::make_unique<Buffer>(sizeof(ProjectionProperties), nullptr, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
 	m_projectionPropertiesBuffer->Bind(GL_UNIFORM_BUFFER, 0u);
-	auto& projectionProperties = *m_projectionPropertiesBuffer->GetMappedStorage<ProjectionProperties>();
-	projectionProperties.View = glm::lookAt(glm::vec3(-16.0f, 48.0f, 72.0f), glm::vec3(16.0f, 16.0f, 16.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-	projectionProperties.ViewInv = glm::inverse(projectionProperties.View);
-	projectionProperties.Proj = glm::perspective(glm::radians(70.0f), static_cast<float>(m_window.GetSize().x) / static_cast<float>(m_window.GetSize().y), 0.1f, 1000.0f);
-	projectionProperties.ProjInv = glm::inverse(projectionProperties.Proj);
+	SetCamera(
+		Camera
+		{
+			.Position = glm::vec3(-16.0f, 32.0f, 48.0f),
+			.Rotation = glm::vec3(-25.0f, -45.0f, 0.0f),
+			.FieldOfView = 70.0f,
+		});
 
 	m_screenPropertiesBuffer = std::make_unique<Buffer>(sizeof(ScreenProperties), nullptr, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
 	m_screenPropertiesBuffer->Bind(GL_UNIFORM_BUFFER, 1u);
