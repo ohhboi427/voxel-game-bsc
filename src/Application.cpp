@@ -4,6 +4,7 @@
 #include "renderer/Window.h"
 #include "world/Camera.h"
 #include "world/Chunk.h"
+#include "utility/ChunkAllocator.h"
 
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
@@ -25,6 +26,16 @@ auto Application::Run() -> void
 
 	Chunk chunk = GenerateChunk(ChunkCoordinate);
 	m_renderer->SubmitChunk(ChunkCoordinate, chunk);
+
+	void* data = new uint8_t[128u];
+	ChunkAllocator allocator(data, 128u);
+
+	int i = 10;
+	auto block = allocator.Allocate(&i, sizeof(int));
+	auto block2 = allocator.Allocate(&i, sizeof(int));
+	allocator.Free(block);
+
+	delete[] data;
 
 	/*m_renderer->SetCamera(
 		Camera{

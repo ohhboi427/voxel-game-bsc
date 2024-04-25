@@ -229,7 +229,7 @@ bool RayVoxelIntersection(vec3 rayOrigin, vec3 rayDirection, out RayHitInfo hitI
 			}
 		}
 
-		if(GetVoxel(mapPosition))
+		if(GetVoxel(mapPosition, 2))
 		{
 			hitInfo.Point = rayOrigin + hitInfo.Distance * rayDirection;
 			return true;
