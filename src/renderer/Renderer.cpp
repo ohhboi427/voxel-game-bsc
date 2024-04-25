@@ -70,6 +70,8 @@ Renderer::Renderer(const Window& window)
 	glBindVertexArray(m_dummyVertexArray);
 
 	glWaitSync(projectionDataFence, 0, GL_TIMEOUT_IGNORED);
+
+	glfwSwapInterval(0);
 }
 
 Renderer::~Renderer()
@@ -156,9 +158,19 @@ auto Renderer::DrawChunk(const glm::uvec2& coordinate, const MemoryBlock& block)
 	glProgramUniform4ui(
 		static_cast<GLuint>(*m_raygenShader), DrawDataLocation,
 		coordinate.x, coordinate.y,
-		block.Offset,
-		0u);
+		static_cast<uint32_t>(block.Offset),
+		GetChunkLod(coordinate));
 
 	glDispatchCompute(static_cast<GLuint>(m_window.GetSize().x / 8u), static_cast<GLuint>(m_window.GetSize().y / 8u), 1u);
 	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+}
+
+auto Renderer::GetChunkLod(const glm::uvec2& coordinate) const noexcept -> uint32_t
+{
+	auto& projectionProperties = *m_projectionPropertiesBuffer->GetMappedStorage<ProjectionProperties>();
+	glm::vec3 cameraPosition = glm::vec3(projectionProperties.ViewInv[3].x, projectionProperties.ViewInv[3].y, projectionProperties.ViewInv[3].z);
+
+	glm::vec3 chunkPosition = glm::vec3(coordinate.x, 0.5, coordinate.y) * float(Chunk::Size);
+
+	return glm::clamp<uint32_t>(static_cast<uint32_t>(glm::distance(cameraPosition, chunkPosition)) / 64, 0, 4);
 }

@@ -22,19 +22,23 @@ Application::~Application()
 
 auto Application::Run() -> void
 {
-	Chunk chunk = GenerateChunk(glm::uvec2(0u, 0u));
-	m_renderer->SubmitChunk(glm::uvec2(0u, 0u), chunk);
+	for(int32_t x = 0; x <= 4; x++)
+	{
+		for(int32_t y = 0; y <= 4; y++)
+		{
+			glm::uvec2 coordinate(x, y);
 
-	// Chunk chunk2 = GenerateChunk(glm::uvec2(1u, 0u));
-	// m_renderer->SubmitChunk(glm::uvec2(1u, 0u), chunk2);
+			Chunk chunk = GenerateChunk(coordinate);
+			m_renderer->SubmitChunk(coordinate, chunk);
+		}
+	}
 
-	/*m_renderer->SetCamera(
+	m_renderer->SetCamera(
 		Camera{
-			.Position = glm::vec3(-16.0f, 48.0f, 48.0f),
-			.Rotation = glm::vec3(-30.0f, -45.0f, 0.0f),
+			.Position = glm::vec3(-32.0f, 64.0f, 128.0f),
+			.Rotation = glm::vec3(-20.0f, -70.0f, 0.0f),
 			.FieldOfView = 70.0f,
 		});
-	*/
 
 	while(!glfwWindowShouldClose(static_cast<GLFWwindow*>(*m_window)))
 	{

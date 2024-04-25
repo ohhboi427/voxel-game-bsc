@@ -21,7 +21,7 @@ layout(binding = 0, std430) buffer VoxelDataStorage
 layout(binding = 0, rgba16f) uniform image2D u_renderedImage;
 
 // xy -> coordiante, z -> offset, w -> LOD
-layout(location = 0) uniform uvec4 u_drawData = uvec4(0, 0, 0, 2);
+layout(location = 0) uniform uvec4 u_drawData = uvec4(0, 0, 0, 0);
 
 #include "Octree.glsl"
 
@@ -232,6 +232,7 @@ bool RayVoxelIntersection(vec3 rayOrigin, vec3 rayDirection, float maxDistance, 
 			}
 		}
 
+		// On Intel iGPU, reading u_drawData is unreasonably slow. I mean from 160 to 60 fps. On NVidia it works fine.
 		if(GetVoxel(mapPosition, u_drawData.z, u_drawData.w))
 		{
 			hitInfo.Point = rayOrigin + hitInfo.Distance * rayDirection;
@@ -268,14 +269,13 @@ void main()
 	const vec3 rayOrigin = u_projectionProperties.ViewInv[3].xyz;
 	const vec3 rayDirection = GetRayDirection(uv);
 
-	vec4 color = vec4(vec3(0.0), depth);
-
 	RayHitInfo hitInfo;
 	if(RayVoxelIntersection(rayOrigin - vec3(u_drawData.x, 0, u_drawData.y) * CHUNK_SIZE, rayDirection, depth, hitInfo))
 	{
 		const vec3 lightDirection = normalize(hitInfo.Point - vec3(0.0, 32.0, 0.0));
 		float lightStrength = dot(hitInfo.Normal, -lightDirection) * SunLight + AmbientLight;
-		color = vec4(vec3(lightStrength), hitInfo.Distance);
+
+		vec4 color = vec4(vec3(lightStrength), hitInfo.Distance);
 
 		imageStore(u_renderedImage, ivec2(gl_GlobalInvocationID.xy), color);
 	}

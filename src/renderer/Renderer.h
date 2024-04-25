@@ -50,4 +50,5 @@ private:
 	auto UploadProjectionData() -> void;
 
 	auto DrawChunk(const glm::uvec2& coordinate, const MemoryBlock& block) -> void;
+	auto GetChunkLod(const glm::uvec2& coordinate) const noexcept -> uint32_t;
 };
