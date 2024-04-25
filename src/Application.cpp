@@ -34,6 +34,7 @@ auto Application::Run() -> void
 	auto block = allocator.Allocate(&i, sizeof(int));
 	auto block2 = allocator.Allocate(&i, sizeof(int));
 	allocator.Free(block);
+	allocator.Free(block2);
 
 	delete[] data;
 

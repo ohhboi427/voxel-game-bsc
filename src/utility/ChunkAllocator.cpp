@@ -56,33 +56,45 @@ auto ChunkAllocator::Allocate(void* data, size_t size) -> MemoryBlock
 
 auto ChunkAllocator::Free(const MemoryBlock& chunkBlock) -> void
 {
-	auto it = std::ranges::find_if(
+	std::vector<MemoryBlock>::iterator itBefore = std::ranges::find_if(
 		m_freeBlocks,
 		[&chunkBlock] (const MemoryBlock& block) -> bool
 		{
-			return
-				// If a free block starts right after the freed one.
-				(block.Offset == (chunkBlock.Offset + chunkBlock.Size)) ||
-				// If a free block ends right before the freed one.
-				((block.Offset + block.Size) == chunkBlock.Offset);
+			return (block.Offset + block.Size) == chunkBlock.Offset;
 		});
 
-	if(it == m_freeBlocks.end())
+	std::vector<MemoryBlock>::iterator itAfter = std::ranges::find_if(
+		m_freeBlocks,
+		[&chunkBlock] (const MemoryBlock& block) -> bool
+		{
+			return block.Offset == (chunkBlock.Offset + chunkBlock.Size);
+		});
+
+	// If there is no adjacent blocks, create a new one.
+	if(itBefore == m_freeBlocks.end() && itAfter == m_freeBlocks.end())
 	{
 		m_freeBlocks.emplace_back(
 			MemoryBlock{
 				.Offset = chunkBlock.Offset,
 				.Size = chunkBlock.Size,
 			});
-
-		return;
 	}
-
-	// Move free block start back if it is after the freed one.
-	if(it->Offset > chunkBlock.Offset)
+	// If both exists merge them.
+	else if(itBefore != m_freeBlocks.end() && itAfter != m_freeBlocks.end())
 	{
-		it->Offset -= chunkBlock.Size;
-	}
+		itBefore->Size += chunkBlock.Size + itAfter->Size;
 
-	it->Size += chunkBlock.Size;
+		m_freeBlocks.erase(itAfter);
+	}
+	// If only the one before it exists expand that.
+	else if(itBefore != m_freeBlocks.end())
+	{
+		itBefore->Size += chunkBlock.Size;
+	}
+	// If only the one after it exists expand that.
+	else
+	{
+		itAfter->Offset -= chunkBlock.Size;
+		itAfter->Size += chunkBlock.Size;
+	}
 }
