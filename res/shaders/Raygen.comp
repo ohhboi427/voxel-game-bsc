@@ -176,19 +176,21 @@ bool RayOctreeTraversal(vec3 rayOrigin, vec3 rayDirection, out RayHitInfo hitInf
 
 bool RayVoxelIntersection(vec3 rayOrigin, vec3 rayDirection, float maxDistance, out RayHitInfo hitInfo)
 {
-	vec2 boxIntersectTest = RayBoxIntersection(rayOrigin, rayDirection, vec3(0.0), vec3(CHUNK_SIZE));
+	vec3 rayOriginInChunk = rayOrigin - vec3(u_drawData.x, 0, u_drawData.y) * CHUNK_SIZE;
+
+	vec2 boxIntersectTest = RayBoxIntersection(rayOriginInChunk, rayDirection, vec3(0.0), vec3(CHUNK_SIZE));
 	if(boxIntersectTest.x < 0.0 || boxIntersectTest.x > maxDistance)
 	{
 		return false;
 	}
-	rayOrigin += (boxIntersectTest.x - 0.0001) * rayDirection;
+	rayOriginInChunk += (boxIntersectTest.x - 0.0001) * rayDirection;
 
 	vec3 stepSize = abs(1.0 / rayDirection);
 
-	ivec3 mapPosition = ivec3(floor(rayOrigin));
+	ivec3 mapPosition = ivec3(floor(rayOriginInChunk));
 	ivec3 stepDirection = ivec3(sign(rayDirection));
 
-	vec3 rayLength = abs((mapPosition + max(stepDirection, vec3(0.0)) - rayOrigin) * stepSize);
+	vec3 rayLength = abs((mapPosition + max(stepDirection, vec3(0.0)) - rayOriginInChunk) * stepSize);
 
 	hitInfo.Distance = 0.0;
 	while(hitInfo.Distance < (boxIntersectTest.y - boxIntersectTest.x))
@@ -235,8 +237,8 @@ bool RayVoxelIntersection(vec3 rayOrigin, vec3 rayDirection, float maxDistance, 
 		// On Intel iGPU, reading u_drawData is unreasonably slow. I mean from 160 to 60 fps. On NVidia it works fine.
 		if(GetVoxel(mapPosition, u_drawData.z, u_drawData.w))
 		{
-			hitInfo.Point = rayOrigin + hitInfo.Distance * rayDirection;
 			hitInfo.Distance += boxIntersectTest.x;
+			hitInfo.Point = rayOrigin + hitInfo.Distance * rayDirection;
 			return true;
 		}
 	}
@@ -270,9 +272,9 @@ void main()
 	const vec3 rayDirection = GetRayDirection(uv);
 
 	RayHitInfo hitInfo;
-	if(RayVoxelIntersection(rayOrigin - vec3(u_drawData.x, 0, u_drawData.y) * CHUNK_SIZE, rayDirection, depth, hitInfo))
+	if(RayVoxelIntersection(rayOrigin, rayDirection, depth, hitInfo))
 	{
-		const vec3 lightDirection = normalize(hitInfo.Point - vec3(0.0, 32.0, 0.0));
+		const vec3 lightDirection = normalize(hitInfo.Point - vec3(80.0, 64.0, 80.0));
 		float lightStrength = dot(hitInfo.Normal, -lightDirection) * SunLight + AmbientLight;
 
 		vec4 color = vec4(vec3(lightStrength), hitInfo.Distance);

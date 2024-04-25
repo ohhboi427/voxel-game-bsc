@@ -16,6 +16,7 @@ project "voxel-game"
 		"vendor/glad/include",
 		"vendor/glfw/include",
 		"vendor/glm/include",
+		"vendor/fastnoiselite/include",
 	}
 
 	libdirs {
