@@ -41,7 +41,7 @@ public:
 	 * 
 	 * @return An object containing the data of the block.
 	 */
-	auto Allocate(const void* data, size_t size) -> MemoryBlock;
+	[[nodiscard]] auto Allocate(const void* data, size_t size) -> MemoryBlock;
 
 	/**
 	 * @brief Deallocates a block of memory.

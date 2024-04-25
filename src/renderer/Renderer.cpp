@@ -35,12 +35,10 @@ Renderer::Renderer(const Window& window)
 	glfwMakeContextCurrent(static_cast<GLFWwindow*>(m_window));
 	gladLoadGL(glfwGetProcAddress);
 
-	UploadProjectionData();
+	InitializeProjectionData();
 	GLsync projectionDataFence = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0u);
 
-	m_chunkDataBuffer = std::make_unique<Buffer>(128_mb, nullptr, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
-	m_chunkDataBuffer->Bind(GL_SHADER_STORAGE_BUFFER, 0u);
-	m_chunkAllocator = std::make_unique<ChunkAllocator>(m_chunkDataBuffer->GetMappedStorage(), 128_mb);
+	InitializeChunkData();
 
 	m_renderTexture;
 	glCreateTextures(GL_TEXTURE_2D, 1, &m_renderTexture);
@@ -62,7 +60,7 @@ Renderer::Renderer(const Window& window)
 		Shader::Sources
 		{
 			{ GL_VERTEX_SHADER, "res/shaders/Screen.vert" },
-		{ GL_FRAGMENT_SHADER, "res/shaders/Screen.frag" },
+			{ GL_FRAGMENT_SHADER, "res/shaders/Screen.frag" },
 		});
 
 	m_dummyVertexArray;
@@ -134,7 +132,14 @@ auto Renderer::Render() -> void
 	glfwSwapBuffers(static_cast<GLFWwindow*>(m_window));
 }
 
-auto Renderer::UploadProjectionData() -> void
+auto Renderer::InitializeChunkData() -> void
+{
+	m_chunkDataBuffer = std::make_unique<Buffer>(128_mb, nullptr, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
+	m_chunkDataBuffer->Bind(GL_SHADER_STORAGE_BUFFER, 0u);
+	m_chunkAllocator = std::make_unique<ChunkAllocator>(m_chunkDataBuffer->GetMappedStorage(), 64_mb);
+}
+
+auto Renderer::InitializeProjectionData() -> void
 {
 	m_projectionPropertiesBuffer = std::make_unique<Buffer>(sizeof(ProjectionProperties), nullptr, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
 	m_projectionPropertiesBuffer->Bind(GL_UNIFORM_BUFFER, 0u);

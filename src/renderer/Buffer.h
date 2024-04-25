@@ -33,6 +33,14 @@ public:
 	auto operator=(Buffer&&) noexcept -> Buffer& = delete;
 
 	/**
+	 * @brief Retrieves the GLuint handle of the buffer.
+	 */
+	[[nodiscard]] explicit constexpr operator uint32_t() const noexcept
+	{
+		return m_handle;
+	}
+
+	/**
 	 * @brief Retrieves a pointer to the buffer's mapped storage.
 	 *
 	 * @tparam The type of the pointer.

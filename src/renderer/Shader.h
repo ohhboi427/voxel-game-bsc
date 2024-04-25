@@ -29,6 +29,9 @@ public:
 	 */
 	~Shader();
 
+	/**
+	 * @brief Retrieves the GLuint handle of the program.
+	 */
 	[[nodiscard]] explicit constexpr operator uint32_t() const noexcept
 	{
 		return m_handle;
