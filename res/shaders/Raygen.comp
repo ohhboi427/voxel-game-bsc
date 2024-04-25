@@ -20,6 +20,9 @@ layout(binding = 0, std430) buffer VoxelDataStorage
 
 layout(binding = 0, rgba16f) uniform image2D u_renderedImage;
 
+// xy -> coordiante, z -> offset, w -> LOD
+layout(location = 0) uniform uvec4 u_drawData = uvec4(0, 0, 0, 2);
+
 #include "Octree.glsl"
 
 struct RayHitInfo
@@ -171,10 +174,10 @@ bool RayOctreeTraversal(vec3 rayOrigin, vec3 rayDirection, out RayHitInfo hitInf
 	return false;
 }
 
-bool RayVoxelIntersection(vec3 rayOrigin, vec3 rayDirection, out RayHitInfo hitInfo)
+bool RayVoxelIntersection(vec3 rayOrigin, vec3 rayDirection, float maxDistance, out RayHitInfo hitInfo)
 {
 	vec2 boxIntersectTest = RayBoxIntersection(rayOrigin, rayDirection, vec3(0.0), vec3(CHUNK_SIZE));
-	if(boxIntersectTest.x < 0.0)
+	if(boxIntersectTest.x < 0.0 || boxIntersectTest.x > maxDistance)
 	{
 		return false;
 	}
@@ -229,9 +232,10 @@ bool RayVoxelIntersection(vec3 rayOrigin, vec3 rayDirection, out RayHitInfo hitI
 			}
 		}
 
-		if(GetVoxel(mapPosition, 2))
+		if(GetVoxel(mapPosition, u_drawData.z, u_drawData.w))
 		{
 			hitInfo.Point = rayOrigin + hitInfo.Distance * rayDirection;
+			hitInfo.Distance += boxIntersectTest.x;
 			return true;
 		}
 	}
@@ -259,22 +263,20 @@ const float SunLight = 1.0;
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 void main()
 {
+	const float depth = imageLoad(u_renderedImage, ivec2(gl_GlobalInvocationID.xy)).w;
 	const vec2 uv = vec2(gl_GlobalInvocationID.xy) / vec2(u_screenProperties.Size);
 	const vec3 rayOrigin = u_projectionProperties.ViewInv[3].xyz;
 	const vec3 rayDirection = GetRayDirection(uv);
 
-	vec3 color = rayDirection;
+	vec4 color = vec4(vec3(0.0), depth);
 
 	RayHitInfo hitInfo;
-	hitInfo.Distance = 1000.0;
-	if(RayVoxelIntersection(rayOrigin, rayDirection, hitInfo))
+	if(RayVoxelIntersection(rayOrigin - vec3(u_drawData.x, 0, u_drawData.y) * CHUNK_SIZE, rayDirection, depth, hitInfo))
 	{
 		const vec3 lightDirection = normalize(hitInfo.Point - vec3(0.0, 32.0, 0.0));
 		float lightStrength = dot(hitInfo.Normal, -lightDirection) * SunLight + AmbientLight;
-		color = vec3(lightStrength);
+		color = vec4(vec3(lightStrength), hitInfo.Distance);
 
-		// color = hitInfo.Point / (CHUNK_SIZE - 1);
+		imageStore(u_renderedImage, ivec2(gl_GlobalInvocationID.xy), color);
 	}
-
-	imageStore(u_renderedImage, ivec2(gl_GlobalInvocationID.xy), vec4(color, hitInfo.Distance));
 }

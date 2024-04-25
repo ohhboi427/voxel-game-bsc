@@ -29,6 +29,11 @@ public:
 	 */
 	~Shader();
 
+	[[nodiscard]] explicit constexpr operator uint32_t() const noexcept
+	{
+		return m_handle;
+	}
+
 	Shader(const Shader&) = delete;
 	auto operator=(const Shader&) -> Shader& = delete;
 

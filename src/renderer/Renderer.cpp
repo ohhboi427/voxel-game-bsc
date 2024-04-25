@@ -40,6 +40,7 @@ Renderer::Renderer(const Window& window)
 
 	m_chunkDataBuffer = std::make_unique<Buffer>(128_mb, nullptr, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
 	m_chunkDataBuffer->Bind(GL_SHADER_STORAGE_BUFFER, 0u);
+	m_chunkAllocator = std::make_unique<ChunkAllocator>(m_chunkDataBuffer->GetMappedStorage(), 128_mb);
 
 	m_renderTexture;
 	glCreateTextures(GL_TEXTURE_2D, 1, &m_renderTexture);
@@ -80,14 +81,18 @@ Renderer::~Renderer()
 
 auto Renderer::SubmitChunk(const glm::uvec2& coordinate, const Chunk& chunk) -> void
 {
-	memcpy(m_chunkDataBuffer->GetMappedStorage(), chunk.Data(), chunk.DataSize());
+	MemoryBlock block = m_chunkAllocator->Allocate(chunk.Data(), chunk.DataSize());
+	m_submittedChunks.insert_or_assign(coordinate, block);
 
 	GLsync bufferUploadFence = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0u);
 	glWaitSync(bufferUploadFence, 0, GL_TIMEOUT_IGNORED);
 }
 
 auto Renderer::RemoveChunk(const glm::uvec2& coordinate) -> void
-{}
+{
+	MemoryBlock block = m_submittedChunks.at(coordinate);
+	m_chunkAllocator->Free(block);
+}
 
 auto Renderer::SetCamera(const Camera& camera) -> void
 {
@@ -111,12 +116,18 @@ auto Renderer::SetCamera(const Camera& camera) -> void
 
 auto Renderer::Render() -> void
 {
+	static constexpr glm::vec4 Clear(0.6f, 0.8f, 1.0f, 1000.0f);
+	glClearTexImage(m_renderTexture, 0u, GL_RGBA, GL_FLOAT, &Clear);
+
 	m_raygenShader->Use();
-	glDispatchCompute(static_cast<GLuint>(m_window.GetSize().x / 8u), static_cast<GLuint>(m_window.GetSize().y / 8u), 1u);
-	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+	for(const auto& [coordinate, block] : m_submittedChunks)
+	{
+		DrawChunk(coordinate, block);
+	}
 
 	m_screenShader->Use();
 	glDrawArrays(GL_TRIANGLES, 0, 3);
+	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
 	glfwSwapBuffers(static_cast<GLFWwindow*>(m_window));
 }
@@ -135,6 +146,19 @@ auto Renderer::UploadProjectionData() -> void
 
 	m_screenPropertiesBuffer = std::make_unique<Buffer>(sizeof(ScreenProperties), nullptr, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
 	m_screenPropertiesBuffer->Bind(GL_UNIFORM_BUFFER, 1u);
+
 	auto& screenProperties = *m_screenPropertiesBuffer->GetMappedStorage<ScreenProperties>();
 	screenProperties.Size = m_window.GetSize();
+}
+
+auto Renderer::DrawChunk(const glm::uvec2& coordinate, const MemoryBlock& block) -> void
+{
+	glProgramUniform4ui(
+		static_cast<GLuint>(*m_raygenShader), DrawDataLocation,
+		coordinate.x, coordinate.y,
+		block.Offset,
+		0u);
+
+	glDispatchCompute(static_cast<GLuint>(m_window.GetSize().x / 8u), static_cast<GLuint>(m_window.GetSize().y / 8u), 1u);
+	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 }

@@ -32,10 +32,10 @@ uint PopCountRange(uint begin, uint end)
 	return sum;
 }
 
-bool GetVoxel(ivec3 coordinate, uint lod)
+bool GetVoxel(ivec3 coordinate, uint offset, uint lod)
 {
-	uint headIndex = 0;
-	uint parentIndex = 0;
+	uint headIndex = offset;
+	uint parentIndex = offset;
 	uint childIndexInParent = 8;
 
 	uint nodeHalfSize = CHUNK_SIZE / 2;

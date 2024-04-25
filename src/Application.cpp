@@ -22,21 +22,11 @@ Application::~Application()
 
 auto Application::Run() -> void
 {
-	static constexpr auto ChunkCoordinate = glm::uvec2(0u, 0u);
+	Chunk chunk = GenerateChunk(glm::uvec2(0u, 0u));
+	m_renderer->SubmitChunk(glm::uvec2(0u, 0u), chunk);
 
-	Chunk chunk = GenerateChunk(ChunkCoordinate);
-	m_renderer->SubmitChunk(ChunkCoordinate, chunk);
-
-	void* data = new uint8_t[128u];
-	ChunkAllocator allocator(data, 128u);
-
-	int i = 10;
-	auto block = allocator.Allocate(&i, sizeof(int));
-	auto block2 = allocator.Allocate(&i, sizeof(int));
-	allocator.Free(block);
-	allocator.Free(block2);
-
-	delete[] data;
+	// Chunk chunk2 = GenerateChunk(glm::uvec2(1u, 0u));
+	// m_renderer->SubmitChunk(glm::uvec2(1u, 0u), chunk2);
 
 	/*m_renderer->SetCamera(
 		Camera{

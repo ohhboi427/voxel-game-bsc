@@ -13,7 +13,7 @@ ChunkAllocator::ChunkAllocator(void* data, size_t size)
 		});
 }
 
-auto ChunkAllocator::Allocate(void* data, size_t size) -> MemoryBlock
+auto ChunkAllocator::Allocate(const void* data, size_t size) -> MemoryBlock
 {
 	// Find a free block that is large enough.
 	auto it = std::ranges::find_if(
@@ -47,7 +47,7 @@ auto ChunkAllocator::Allocate(void* data, size_t size) -> MemoryBlock
 
 	// Copy the memory into the buffer.
 	std::ranges::copy(
-		std::span<uint8_t>(reinterpret_cast<uint8_t*>(data), size),
+		std::span<const uint8_t>(reinterpret_cast<const uint8_t*>(data), size),
 		m_data.subspan(chunkBlock.Offset, chunkBlock.Size).begin()
 	);
 

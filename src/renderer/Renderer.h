@@ -1,10 +1,13 @@
 #pragma once
 
+#include "../utility/ChunkAllocator.h"
 #include "../world/Chunk.h"
 
 #include <glm/glm.hpp>
+#include <glm/gtx/hash.hpp>
 
 #include <memory>
+#include <unordered_map>
 
 class Buffer;
 class Shader;
@@ -31,14 +34,20 @@ public:
 	auto Render() -> void;
 
 private:
+	static constexpr size_t DrawDataLocation = 0u;
+
 	const Window& m_window;
 	std::unique_ptr<Buffer> m_projectionPropertiesBuffer;
 	std::unique_ptr<Buffer> m_screenPropertiesBuffer;
 	std::unique_ptr<Buffer> m_chunkDataBuffer;
 	std::unique_ptr<Shader> m_screenShader;
 	std::unique_ptr<Shader> m_raygenShader;
+	std::unique_ptr<ChunkAllocator> m_chunkAllocator;
+	std::unordered_map<glm::uvec2, MemoryBlock> m_submittedChunks;
 	uint32_t m_renderTexture;
 	uint32_t m_dummyVertexArray;
 
 	auto UploadProjectionData() -> void;
+
+	auto DrawChunk(const glm::uvec2& coordinate, const MemoryBlock& block) -> void;
 };
