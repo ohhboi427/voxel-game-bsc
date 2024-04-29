@@ -4,8 +4,10 @@
 
 #include <glm/gtx/vec_swizzle.hpp>
 
+#include <algorithm>
 #include <future>
 #include <iostream>
+#include <ranges>
 #include <thread>
 
 World::World(Renderer& renderer)
@@ -29,11 +31,20 @@ auto World::Update() -> void
 			glm::ivec2 chunkCoordinate = glm::ivec2(x, y) + cameraCoordinate;
 
 			visibleChunks.insert(chunkCoordinate);
-			if(!m_loadedChunks.contains(chunkCoordinate))
+			if(!m_loadedChunks.contains(chunkCoordinate) && std::ranges::find(m_neededChunks, chunkCoordinate) == m_neededChunks.end())
 			{
-				GenerateChunk(chunkCoordinate);
+				m_neededChunks.push_back(chunkCoordinate);
 			}
 		}
+	}
+
+	if(!m_neededChunks.empty())
+	{
+		glm::ivec2& chunkCoordinate = m_neededChunks.front();
+
+		GenerateChunk(chunkCoordinate);
+
+		m_neededChunks.pop_front();
 	}
 
 	std::erase_if(

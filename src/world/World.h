@@ -3,6 +3,7 @@
 #include "Camera.h"
 #include "Chunk.h"
 
+#include <deque>
 #include <unordered_set>
 
 #include <glm/glm.hpp>
@@ -30,7 +31,7 @@ public:
 private:
 	Camera m_camera;
 	Renderer& m_renderer;
-
+	std::deque<glm::ivec2> m_neededChunks;
 	std::unordered_set<glm::ivec2> m_loadedChunks;
 
 	/**
