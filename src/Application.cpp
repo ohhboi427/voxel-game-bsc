@@ -4,6 +4,7 @@
 #include "renderer/Window.h"
 #include "world/Camera.h"
 #include "world/Chunk.h"
+#include "world/World.h"
 #include "utility/ChunkAllocator.h"
 
 #include <GLFW/glfw3.h>
@@ -22,16 +23,7 @@ Application::~Application()
 
 auto Application::Run() -> void
 {
-	for(int32_t x = 0; x <= 4; x++)
-	{
-		for(int32_t y = 0; y <= 4; y++)
-		{
-			glm::uvec2 coordinate(x, y);
-
-			Chunk chunk = GenerateChunk(coordinate);
-			m_renderer->SubmitChunk(coordinate, chunk);
-		}
-	}
+	World world(*m_renderer);
 
 	m_renderer->SetCamera(
 		Camera{
@@ -44,6 +36,8 @@ auto Application::Run() -> void
 	{
 		glfwPollEvents();
 
+		world.GetCamera().Position.x -= 0.1f;
+		world.Update();
 		m_renderer->Render();
 	}
 }

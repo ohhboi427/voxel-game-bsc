@@ -21,7 +21,7 @@ layout(binding = 0, std430) buffer VoxelDataStorage
 layout(binding = 0, rgba16f) uniform image2D u_renderedImage;
 
 // xy -> coordiante, z -> offset, w -> LOD
-layout(location = 0) uniform uvec4 u_drawData = uvec4(0, 0, 0, 0);
+layout(location = 0) uniform ivec4 u_drawData = ivec4(0, 0, 0, 0);
 
 #include "Octree.glsl"
 
@@ -66,28 +66,27 @@ vec2 RayBoxIntersection(vec3 rayOrigin, vec3 rayDirection, vec3 boundsMin, vec3 
 	return vec2(tmin, tmax);
 }
 
-bool RayOctreeTraversal(vec3 rayOrigin, vec3 rayDirection, out RayHitInfo hitInfo)
+bool RayOctreeTraversal(vec3 rayOrigin, vec3 rayDirection, float maxDistance, out RayHitInfo hitInfo)
 {
+	vec3 rayOriginInChunk = rayOrigin - vec3(u_drawData.x, 0, u_drawData.y) * CHUNK_SIZE;
+
 	// Move the ray origin to the edge of the chunk
-	vec2 boxIntersectTest = RayBoxIntersection(rayOrigin, rayDirection, vec3(0.0), vec3(CHUNK_SIZE));
-	if(boxIntersectTest.x < 0.0)
+	vec2 boxIntersectTest = RayBoxIntersection(rayOriginInChunk, rayDirection, vec3(0.0), vec3(CHUNK_SIZE));
+	if(boxIntersectTest.x < 0.0 || boxIntersectTest.x > maxDistance)
 	{
 		return false;
 	}
-	rayOrigin += boxIntersectTest.x * rayDirection;
+	rayOriginInChunk += boxIntersectTest.x * rayDirection;
 
 	vec3 absRayDirection = abs(rayDirection);
 	vec3 stepSize = abs(1.0 / rayDirection);
 	ivec3 stepDirection = ivec3(sign(rayDirection));
 
 	float rayLength = 0.0;
-	int i = 0;
-	while(hitInfo.Distance < (boxIntersectTest.y - boxIntersectTest.x) && i < 50)
+	while(hitInfo.Distance < (boxIntersectTest.y - boxIntersectTest.x))
 	{
-		++i;
-
-		uint headIndex = 0;
-		uint parentIndex = 0;
+		uint headIndex = u_drawData.z;
+		uint parentIndex = u_drawData.z;
 		uint childIndexInParent = 8;
 
 		uint nodeHalfSize = CHUNK_SIZE / 2;
@@ -95,7 +94,7 @@ bool RayOctreeTraversal(vec3 rayOrigin, vec3 rayDirection, out RayHitInfo hitInf
 		while(nodeHalfSize > 0)
 		{
 			// Find which octet the ray is in
-			ivec3 octet = ivec3(greaterThanEqual(rayOrigin, midPoint));
+			ivec3 octet = ivec3(greaterThanEqual(rayOriginInChunk, midPoint));
 
 			uint childIndex = octet.x | (octet.y << 1) | (octet.z << 2);
 			uint childMask = 1 << childIndex;
@@ -107,11 +106,11 @@ bool RayOctreeTraversal(vec3 rayOrigin, vec3 rayDirection, out RayHitInfo hitInf
 			if((GetByte(headIndex) & childMask) == 0)
 			{
 				vec3 farCorner = midPoint + stepDirection * nodeHalfSize;
-				vec3 distanceToFarCorner = abs(farCorner - rayOrigin) + 0.00001;
+				vec3 distanceToFarCorner = abs(farCorner - rayOriginInChunk) + 0.00001;
 				vec3 d = distanceToFarCorner / absRayDirection;
 
 				// hitInfo.Distance = min(min(d.x, d.y), d.z);
-				// hitInfo.Point = rayOrigin + rayDirection * hitInfo.Distance;
+				// hitInfo.Point = rayOriginInChunk + rayDirection * hitInfo.Distance;
 				// return true;
 
 				// Move the ray to the closest edge
@@ -119,13 +118,13 @@ bool RayOctreeTraversal(vec3 rayOrigin, vec3 rayDirection, out RayHitInfo hitInf
 				{
 					if(d.x < d.z)
 					{
-						rayOrigin += rayDirection * stepSize.x * distanceToFarCorner.x;
+						rayOriginInChunk += rayDirection * stepSize.x * distanceToFarCorner.x;
 						hitInfo.Distance += d.x;
 						hitInfo.Normal = vec3(-stepDirection.x, 0.0, 0.0);
 					}
 					else
 					{
-						rayOrigin += rayDirection * stepSize.z * distanceToFarCorner.z;
+						rayOriginInChunk += rayDirection * stepSize.z * distanceToFarCorner.z;
 						hitInfo.Distance += d.z;
 						hitInfo.Normal = vec3(0.0, 0.0, -stepDirection.z);
 					}
@@ -134,13 +133,13 @@ bool RayOctreeTraversal(vec3 rayOrigin, vec3 rayDirection, out RayHitInfo hitInf
 				{
 					if(d.y < d.z)
 					{
-						rayOrigin += rayDirection * stepSize.y * distanceToFarCorner.y;
+						rayOriginInChunk += rayDirection * stepSize.y * distanceToFarCorner.y;
 						hitInfo.Distance += d.y;
 						hitInfo.Normal = vec3(0.0, -stepDirection.y, 0.0);
 					}
 					else
 					{
-						rayOrigin += rayDirection * stepSize.z * distanceToFarCorner.z;
+						rayOriginInChunk += rayDirection * stepSize.z * distanceToFarCorner.z;
 						hitInfo.Distance += d.z;
 						hitInfo.Normal = vec3(0.0, 0.0, -stepDirection.z);
 					}
@@ -148,8 +147,6 @@ bool RayOctreeTraversal(vec3 rayOrigin, vec3 rayDirection, out RayHitInfo hitInf
 
 				break;
 			}
-
-
 
 			uint skipCount =
 				PopCountByte(GetByte(parentIndex), childIndexInParent + 1, 8) + // The number of children on the same layer after the current.
@@ -165,8 +162,8 @@ bool RayOctreeTraversal(vec3 rayOrigin, vec3 rayDirection, out RayHitInfo hitInf
 
 		if(nodeHalfSize == 0)
 		{
-			hitInfo.Point = rayOrigin;
-			// hitInfo.Point = vec3(0.0);
+			hitInfo.Distance += boxIntersectTest.x;
+			hitInfo.Point = rayOrigin + hitInfo.Distance * rayDirection;
 			return true;
 		}
 	}
@@ -234,7 +231,7 @@ bool RayVoxelIntersection(vec3 rayOrigin, vec3 rayDirection, float maxDistance, 
 			}
 		}
 
-		// On Intel iGPU, reading u_drawData is unreasonably slow. I mean from 160 to 60 fps. On NVidia it works fine.
+		// On Intel iGPU, reading u_drawData.w is unreasonably slow. I mean from 160 to 60 fps. On NVidia it works fine.
 		if(GetVoxel(mapPosition, u_drawData.z, u_drawData.w))
 		{
 			hitInfo.Distance += boxIntersectTest.x;
