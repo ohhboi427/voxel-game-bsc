@@ -1,9 +1,11 @@
 #include "Window.h"
 
+#include "../utility/Config.h"
+
 #include <GLFW/glfw3.h>
 
-Window::Window(const glm::uvec2& size, std::string_view title)
-	: m_size(size)
+Window::Window(const WindowSettings& settings)
+	: m_settings(settings)
 {
 	if(s_windowCount++ == 0u)
 	{
@@ -15,7 +17,7 @@ Window::Window(const glm::uvec2& size, std::string_view title)
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 	glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
-	m_handle = glfwCreateWindow(static_cast<int>(m_size.x), static_cast<int>(m_size.y), title.data(), nullptr, nullptr);
+	m_handle = glfwCreateWindow(static_cast<int>(m_settings.Size.x), static_cast<int>(m_settings.Size.y), m_settings.Title.data(), nullptr, nullptr);
 }
 
 Window::~Window()
@@ -26,4 +28,15 @@ Window::~Window()
 	{
 		glfwTerminate();
 	}
+}
+
+auto WindowSettings::LoadFromConfig() -> WindowSettings
+{
+	return WindowSettings{
+		.Size = glm::ivec2(
+			static_cast<uint32_t>(Config::Get<int64_t>("window", "iWidth")),
+			static_cast<uint32_t>(Config::Get<int64_t>("window", "iHeight"))
+		),
+		.Title = Config::Get<std::string>("window", "sTitle"),
+	};
 }

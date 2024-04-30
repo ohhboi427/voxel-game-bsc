@@ -10,5 +10,5 @@ trim_trailing_whitespace = true
 indent_style = tab
 indent_size = tab
 
-[*.{sln,vcxproj,vcxproj.filters,vcxproj.user}]
+[*.{toml,sln,vcxproj,vcxproj.filters,vcxproj.user}]
 end_of_line = crlf

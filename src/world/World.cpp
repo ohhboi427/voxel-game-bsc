@@ -1,6 +1,7 @@
 #include "World.h"
 
 #include "../renderer/Renderer.h"
+#include "../utility/Config.h"
 
 #include <glm/gtx/vec_swizzle.hpp>
 
@@ -10,8 +11,8 @@
 #include <ranges>
 #include <thread>
 
-World::World(Renderer& renderer)
-	: m_renderer(renderer), m_camera{
+World::World(const WorldSettings& settings, Renderer& renderer)
+	: m_renderer(renderer), m_settings(settings), m_camera{
 		.Position = glm::vec3(-32.0f, 64.0f, 128.0f),
 		.Rotation = glm::vec3(-20.0f, -70.0f, 0.0f),
 		.FieldOfView = 70.0f
@@ -24,9 +25,9 @@ auto World::Update() -> void
 
 	std::unordered_set<glm::ivec2> visibleChunks;
 
-	for(int32_t x = -4; x < 4; ++x)
+	for(int32_t x = -m_settings.RenderDistance; x < m_settings.RenderDistance; ++x)
 	{
-		for(int32_t y = -4; y < 4; ++y)
+		for(int32_t y = -m_settings.RenderDistance; y < m_settings.RenderDistance; ++y)
 		{
 			glm::ivec2 chunkCoordinate = glm::ivec2(x, y) + cameraCoordinate;
 
@@ -55,7 +56,7 @@ auto World::Update() -> void
 		{
 			glm::ivec2 distance = glm::abs(cameraCoordinate - chunkCoordinate);
 
-			bool shouldUnload = distance.x > 4 || distance.y > 4;
+			bool shouldUnload = distance.x > m_settings.RenderDistance || distance.y > m_settings.RenderDistance;
 			if(shouldUnload)
 			{
 				m_renderer.RemoveChunk(chunkCoordinate);
@@ -74,4 +75,11 @@ auto World::LoadChunk(glm::ivec2 coordinate) -> void
 	m_loadedChunks.insert(coordinate);
 
 	m_renderer.SubmitChunk(coordinate, chunk);
+}
+
+auto WorldSettings::LoadFromConfig() -> WorldSettings
+{
+	return WorldSettings{
+		.RenderDistance = static_cast<uint8_t>(Config::Get<int64_t>("world", "iRenderDistance")),
+	};
 }

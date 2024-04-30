@@ -3,9 +3,32 @@
 #include <glm/glm.hpp>
 
 #include <cstdint>
-#include <string_view>
+#include <string>
 
 typedef struct GLFWwindow GLFWwindow;
+
+/**
+ * @brief Holds settings related to a window.
+ */
+struct WindowSettings
+{
+	/**
+	 * @brief The size of the window in pixels.
+	 */
+	glm::uvec2 Size;
+
+	/**
+	 * @brief The title visible on the top of the window.
+	 */
+	std::string Title;
+
+	/**
+	 * @brief Loads the settings from the config file.
+	 *
+	 * @return The settings loaded from the file.
+	 */
+	static auto LoadFromConfig() -> WindowSettings;
+};
 
 /**
  * @brief A wrapper around GLFWwindow.
@@ -18,10 +41,9 @@ public:
 	 *
 	 * Initializes GLFW on the first window construction.
 	 * 
-	 * @param size The size of the window in pixels.
-	 * @param title The title visible on top of the window.
+	 * @param settings The settings of the window.
 	 */
-	Window(const glm::uvec2& size, std::string_view title);
+	Window(const WindowSettings& settings);
 
 	/**
 	 * @brief Deletes thw window.
@@ -51,12 +73,12 @@ public:
 	 */
 	[[nodiscard]] constexpr auto GetSize() const noexcept -> const glm::uvec2&
 	{
-		return m_size;
+		return m_settings.Size;
 	}
 
 private:
 	inline static uint8_t s_windowCount = 0u;
 
 	GLFWwindow* m_handle;
-	glm::uvec2 m_size;
+	WindowSettings m_settings;
 };

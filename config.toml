@@ -1,0 +1,10 @@
+[renderer]
+iChunkDataBufferSize = 134217728
+
+[window]
+iHeight = 720
+iWidth = 1280
+sTitle = 'voxel-game'
+
+[world]
+iRenderDistance = 4

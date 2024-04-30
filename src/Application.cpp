@@ -6,20 +6,23 @@
 #include "world/Chunk.h"
 #include "world/World.h"
 #include "utility/ChunkAllocator.h"
+#include "utility/Config.h"
 
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 
 Application::Application()
 {
-	m_window = std::make_unique<Window>(glm::uvec2(1280u, 720u), "voxel-game");
-	m_renderer = std::make_unique<Renderer>(*m_window);
-	m_world = std::make_unique<World>(*m_renderer);
+	Config::Load();
+
+	m_window = std::make_unique<Window>(WindowSettings::LoadFromConfig());
+	m_renderer = std::make_unique<Renderer>(RendererSettings::LoadFromConfig(), *m_window);
+	m_world = std::make_unique<World>(WorldSettings::LoadFromConfig(), *m_renderer);
 }
 
 Application::~Application()
 {
-
+	Config::Save();
 }
 
 auto Application::Run() -> void

@@ -18,6 +18,24 @@ class Window;
 struct Camera;
 
 /**
+ * @brief Holds settings related to a window.
+ */
+struct RendererSettings
+{
+	/**
+	 * @brief The size of the chunk data buffer in bytes.
+	 */
+	size_t ChunkDataBufferSize;
+
+	/**
+	 * @brief Loads the settings from the config file.
+	 *
+	 * @return The settings loaded from the file.
+	 */
+	static auto LoadFromConfig() -> RendererSettings;
+};
+
+/**
  * @brief Handles the rendering of the world.
  */
 class Renderer
@@ -26,9 +44,10 @@ public:
 	/**
 	 * @brief Initialized the OpenGL context and the rendering pipeline.
 	 *
+	 * @param settings The settings of the renderer.
 	 * @param window The output window.
 	 */
-	Renderer(const Window& window);
+	Renderer(const RendererSettings& settings, const Window& window);
 	~Renderer();
 
 	Renderer(const Renderer&) = delete;
@@ -65,21 +84,9 @@ public:
 	auto Render() -> void;
 
 private:
-	struct ProjectionProperties
-	{
-		glm::mat4 View;
-		glm::mat4 ViewInv;
-		glm::mat4 Proj;
-		glm::mat4 ProjInv;
-	};
-
-	struct ScreenProperties
-	{
-		glm::uvec2 Size;
-	};
-
 	static constexpr size_t DrawDataLocation = 0u;
 
+	RendererSettings m_settings;
 	const Window& m_window;
 	std::unique_ptr<Buffer> m_projectionPropertiesBuffer;
 	std::unique_ptr<Buffer> m_screenPropertiesBuffer;

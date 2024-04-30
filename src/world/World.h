@@ -11,10 +11,28 @@
 
 class Renderer;
 
+/**
+ * @brief Holds settings related to a world.
+ */
+struct WorldSettings
+{
+	/**
+	 * @brief The number of chunks visible from the camera in one direction.
+	 */
+	uint8_t RenderDistance;
+
+	/**
+	 * @brief Loads the settings from the config file.
+	 * 
+	 * @return The settings loaded from the file.
+	 */
+	static auto LoadFromConfig() -> WorldSettings;
+};
+
 class World
 {
 public:
-	World(Renderer& renderer);
+	World(const WorldSettings& settings, Renderer& renderer);
 
 	auto Update() -> void;
 
@@ -31,6 +49,7 @@ public:
 private:
 	Camera m_camera;
 	Renderer& m_renderer;
+	WorldSettings m_settings;
 	std::deque<glm::ivec2> m_neededChunks;
 	std::unordered_set<glm::ivec2> m_loadedChunks;
 

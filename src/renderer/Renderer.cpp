@@ -4,6 +4,7 @@
 #include "Shader.h"
 #include "Window.h"
 #include "../world/Camera.h"
+#include "../utility/Config.h"
 #include "../utility/SpanUtils.h"
 
 #include <glad/gl.h>
@@ -12,8 +13,24 @@
 
 using namespace Literals;
 
-Renderer::Renderer(const Window& window)
-	: m_window(window)
+namespace
+{
+	struct ProjectionProperties
+	{
+		glm::mat4 View;
+		glm::mat4 ViewInv;
+		glm::mat4 Proj;
+		glm::mat4 ProjInv;
+	};
+
+	struct ScreenProperties
+	{
+		glm::uvec2 Size;
+	};
+}
+
+Renderer::Renderer(const RendererSettings& settings, const Window& window)
+	: m_settings(settings), m_window(window)
 {
 	glfwMakeContextCurrent(static_cast<GLFWwindow*>(m_window));
 	gladLoadGL(glfwGetProcAddress);
@@ -133,7 +150,7 @@ auto Renderer::Render() -> void
 auto Renderer::InitializeChunkData() -> void
 {
 	m_chunkDataBuffer = std::make_unique<Buffer>(
-		Span(128_mb),
+		Span(m_settings.ChunkDataBufferSize),
 		GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
 	m_chunkDataBuffer->Bind(GL_SHADER_STORAGE_BUFFER, 0u);
 
@@ -176,4 +193,11 @@ auto Renderer::GetChunkLod(const glm::ivec2& coordinate) const noexcept -> int32
 	glm::vec3 chunkPosition = glm::vec3(coordinate.x, 0.5, coordinate.y) * static_cast<float>(Chunk::Size);
 
 	return glm::clamp<uint32_t>(static_cast<uint32_t>(glm::distance(cameraPosition, chunkPosition)) / 64, 0, 4);
+}
+
+auto RendererSettings::LoadFromConfig() -> RendererSettings
+{
+	return RendererSettings{
+		.ChunkDataBufferSize = static_cast<size_t>(Config::Get<int64_t>("renderer", "iChunkDataBufferSize")),
+	};
 }
