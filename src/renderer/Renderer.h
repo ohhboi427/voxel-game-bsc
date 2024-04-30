@@ -4,8 +4,10 @@
 #include "../world/Chunk.h"
 
 #include <glm/glm.hpp>
+#include <glm/ext.hpp>
 #include <glm/gtx/hash.hpp>
 
+#include <cstdint>
 #include <memory>
 #include <mutex>
 #include <unordered_map>
@@ -63,6 +65,19 @@ public:
 	auto Render() -> void;
 
 private:
+	struct ProjectionProperties
+	{
+		glm::mat4 View;
+		glm::mat4 ViewInv;
+		glm::mat4 Proj;
+		glm::mat4 ProjInv;
+	};
+
+	struct ScreenProperties
+	{
+		glm::uvec2 Size;
+	};
+
 	static constexpr size_t DrawDataLocation = 0u;
 
 	const Window& m_window;
@@ -100,5 +115,5 @@ private:
 	 *
 	 * @param coordinate The coordinate of the chunk.
 	 */
-	auto GetChunkLod(const glm::ivec2& coordinate) const noexcept -> int32_t;
+	[[nodiscard]] auto GetChunkLod(const glm::ivec2& coordinate) const noexcept -> int32_t;
 };

@@ -42,7 +42,7 @@ auto World::Update() -> void
 	{
 		glm::ivec2& chunkCoordinate = m_neededChunks.front();
 
-		GenerateChunk(chunkCoordinate);
+		LoadChunk(chunkCoordinate);
 
 		m_neededChunks.pop_front();
 	}
@@ -65,16 +65,11 @@ auto World::Update() -> void
 	m_renderer.SetCamera(m_camera);
 }
 
-auto World::GenerateChunk(glm::ivec2 coordinate) -> void
+auto World::LoadChunk(glm::ivec2 coordinate) -> void
 {
-	Chunk chunk = ::GenerateChunk(coordinate);
+	Chunk chunk = GenerateChunk(coordinate);
 
 	m_loadedChunks.insert(coordinate);
 
-	OnChunkGenerated(coordinate, chunk);
-}
-
-auto World::OnChunkGenerated(const glm::ivec2& coordinate, const Chunk& chunk) -> void
-{
 	m_renderer.SubmitChunk(coordinate, chunk);
 }

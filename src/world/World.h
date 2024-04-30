@@ -39,13 +39,5 @@ private:
 	 * 
 	 * @param coordinate The coordinate of the chunk.
 	 */
-	auto GenerateChunk(glm::ivec2 coordinate) -> void;
-
-	/**
-	 * @brief Submits a chunk to the renderer after it has been generated.
-	 * 
-	 * @param coordinate The coordinate of the chunk.
-	 * @param chunk The chunk.
-	 */
-	auto OnChunkGenerated(const glm::ivec2& coordinate, const Chunk& chunk) -> void;
+	auto LoadChunk(glm::ivec2 coordinate) -> void;
 };

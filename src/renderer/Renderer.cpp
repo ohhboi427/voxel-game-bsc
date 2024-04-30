@@ -4,30 +4,12 @@
 #include "Shader.h"
 #include "Window.h"
 #include "../world/Camera.h"
-#include "../world/Chunk.h"
 
 #include <glad/gl.h>
 #include <GLFW/glfw3.h>
-#include <glm/ext.hpp>
 #include <glm/gtx/vec_swizzle.hpp>
 
 using namespace Literals;
-
-namespace
-{
-	struct ProjectionProperties
-	{
-		glm::mat4 View;
-		glm::mat4 ViewInv;
-		glm::mat4 Proj;
-		glm::mat4 ProjInv;
-	};
-
-	struct ScreenProperties
-	{
-		glm::uvec2 Size;
-	};
-}
 
 Renderer::Renderer(const Window& window)
 	: m_window(window)

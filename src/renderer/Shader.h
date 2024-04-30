@@ -50,4 +50,15 @@ public:
 
 private:
 	uint32_t m_handle;
+
+	/**
+	 * @brief Loads and preprocesses a shader source file.
+	 *
+	 * Handles relative includes.
+	 * 
+	 * @param path The path of the file.
+	 * 
+	 * @return A string containing the source.
+	 */
+	[[nodiscard]] static auto LoadShaderSourceFile(const std::filesystem::path& path) -> std::string;
 };
