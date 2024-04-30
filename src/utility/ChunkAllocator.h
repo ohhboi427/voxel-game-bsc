@@ -28,20 +28,18 @@ public:
 	/**
 	 * @brief Wraps a buffer.
 	 * 
-	 * @param data A pointer to a buffer.
-	 * @param size The size of the buffer in bytes.
+	 * @param data A span to a buffer.
 	 */
-	ChunkAllocator(void* data, size_t size);
+	ChunkAllocator(std::span<uint8_t> data);
 
 	/**
 	 * @brief Allocates a block of a buffer.
 	 * 
-	 * @param data The memory moved into the block.
-	 * @param size The size of the block in bytes.
+	 * @param data A span to the allocated memory.
 	 * 
 	 * @return An object containing the data of the block.
 	 */
-	[[nodiscard]] auto Allocate(const void* data, size_t size) -> MemoryBlock;
+	[[nodiscard]] auto Allocate(std::span<const uint8_t> data) -> MemoryBlock;
 
 	/**
 	 * @brief Deallocates a block of memory.

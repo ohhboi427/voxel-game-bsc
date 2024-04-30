@@ -4,6 +4,7 @@
 #include "Shader.h"
 #include "Window.h"
 #include "../world/Camera.h"
+#include "../utility/SpanUtils.h"
 
 #include <glad/gl.h>
 #include <GLFW/glfw3.h>
@@ -66,7 +67,7 @@ auto Renderer::SubmitChunk(const glm::ivec2& coordinate, const Chunk& chunk) -> 
 	{
 		std::scoped_lock lock(m_chunkDataMutex);
 
-		MemoryBlock block = m_chunkAllocator->Allocate(chunk.Data(), chunk.DataSize());
+		MemoryBlock block = m_chunkAllocator->Allocate(chunk.Data());
 		m_submittedChunks.insert_or_assign(coordinate, block);
 	}
 }
@@ -87,7 +88,7 @@ auto Renderer::SetCamera(const Camera& camera) -> void
 {
 	glm::quat rotation(glm::radians(camera.Rotation));
 
-	auto& projectionProperties = *m_projectionPropertiesBuffer->GetMappedStorage<ProjectionProperties>();
+	auto& projectionProperties = m_projectionPropertiesBuffer->GetMappedStorage<ProjectionProperties>().front();
 	projectionProperties.View = glm::lookAt(
 		camera.Position,
 		camera.Position + rotation * glm::vec3(0.0f, 0.0f, -1.0f),
@@ -131,20 +132,20 @@ auto Renderer::Render() -> void
 
 auto Renderer::InitializeChunkData() -> void
 {
-	m_chunkDataBuffer = std::make_unique<Buffer>(128_mb, nullptr, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
+	m_chunkDataBuffer = std::make_unique<Buffer>(Span(128_mb), GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
 	m_chunkDataBuffer->Bind(GL_SHADER_STORAGE_BUFFER, 0u);
-	m_chunkAllocator = std::make_unique<ChunkAllocator>(m_chunkDataBuffer->GetMappedStorage(), 64_mb);
+	m_chunkAllocator = std::make_unique<ChunkAllocator>(m_chunkDataBuffer->GetMappedStorage());
 }
 
 auto Renderer::InitializeProjectionData() -> void
 {
-	m_projectionPropertiesBuffer = std::make_unique<Buffer>(sizeof(ProjectionProperties), nullptr, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
+	m_projectionPropertiesBuffer = std::make_unique<Buffer>(Span(sizeof(ProjectionProperties)), GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
 	m_projectionPropertiesBuffer->Bind(GL_UNIFORM_BUFFER, 0u);
 
-	m_screenPropertiesBuffer = std::make_unique<Buffer>(sizeof(ScreenProperties), nullptr, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
+	m_screenPropertiesBuffer = std::make_unique<Buffer>(Span(sizeof(ScreenProperties)), GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
 	m_screenPropertiesBuffer->Bind(GL_UNIFORM_BUFFER, 1u);
 
-	auto& screenProperties = *m_screenPropertiesBuffer->GetMappedStorage<ScreenProperties>();
+	auto& screenProperties = m_screenPropertiesBuffer->GetMappedStorage<ScreenProperties>().front();
 	screenProperties.Size = m_window.GetSize();
 }
 
@@ -162,7 +163,7 @@ auto Renderer::DrawChunk(const glm::ivec2& coordinate, const MemoryBlock& block)
 
 auto Renderer::GetChunkLod(const glm::ivec2& coordinate) const noexcept -> int32_t
 {
-	auto& projectionProperties = *m_projectionPropertiesBuffer->GetMappedStorage<ProjectionProperties>();
+	auto& projectionProperties = m_projectionPropertiesBuffer->GetMappedStorage<ProjectionProperties>().front();
 	glm::vec3 cameraPosition = glm::vec3(projectionProperties.ViewInv[3]);
 
 	glm::vec3 chunkPosition = glm::vec3(coordinate.x, 0.5, coordinate.y) * float(Chunk::Size);

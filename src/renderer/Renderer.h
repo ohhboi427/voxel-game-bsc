@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../utility/ChunkAllocator.h"
 #include "../world/Chunk.h"
+#include "../utility/ChunkAllocator.h"
 
 #include <glm/glm.hpp>
 #include <glm/ext.hpp>
@@ -32,10 +32,10 @@ public:
 	~Renderer();
 
 	Renderer(const Renderer&) = delete;
-	auto operator=(const Renderer&)->Renderer & = delete;
+	auto operator=(const Renderer&) -> Renderer& = delete;
 
 	Renderer(Renderer&&) noexcept = delete;
-	auto operator=(Renderer&&) noexcept -> Renderer & = delete;
+	auto operator=(Renderer&&) noexcept -> Renderer& = delete;
 
 	/**
 	 * @brief Submits a chunk to be rendered.

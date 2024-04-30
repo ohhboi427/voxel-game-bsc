@@ -3,24 +3,24 @@
 #include <algorithm>
 #include <ranges>
 
-ChunkAllocator::ChunkAllocator(void* data, size_t size)
-	: m_data(reinterpret_cast<uint8_t*>(data), size)
+ChunkAllocator::ChunkAllocator(std::span<uint8_t> data)
+	: m_data(data)
 {
 	m_freeBlocks.emplace_back(
 		MemoryBlock{
 			.Offset = 0u,
-			.Size = size,
+			.Size = m_data.size(),
 		});
 }
 
-auto ChunkAllocator::Allocate(const void* data, size_t size) -> MemoryBlock
+auto ChunkAllocator::Allocate(std::span<const uint8_t> data) -> MemoryBlock
 {
 	// Find a free block that is large enough.
 	auto it = std::ranges::find_if(
 		m_freeBlocks,
-		[&size] (const MemoryBlock& block) -> bool
+		[&] (const MemoryBlock& block) -> bool
 		{
-			return block.Size >= size;
+			return block.Size >= data.size();
 		});
 
 	if(it == m_freeBlocks.end())
@@ -30,24 +30,24 @@ auto ChunkAllocator::Allocate(const void* data, size_t size) -> MemoryBlock
 
 	MemoryBlock chunkBlock{
 		.Offset = it->Offset,
-		.Size = size,
+		.Size = data.size(),
 	};
 
 	// If the free block is the same size as the needed memory, remove the freeblock.
-	if(it->Size == size)
+	if(it->Size == data.size())
 	{
 		m_freeBlocks.erase(it);
 	}
 	// Otherwise shrink it.
 	else
 	{
-		it->Offset += size;
-		it->Size -= size;
+		it->Offset += data.size();
+		it->Size -= data.size();
 	}
 
 	// Copy the memory into the buffer.
 	std::ranges::copy(
-		std::span<const uint8_t>(reinterpret_cast<const uint8_t*>(data), size),
+		data,
 		m_data.subspan(chunkBlock.Offset, chunkBlock.Size).begin()
 	);
 

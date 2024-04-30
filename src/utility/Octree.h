@@ -3,6 +3,7 @@
 #include "Math.h"
 
 #include <cstdint>
+#include <span>
 #include <vector>
 
 /**
@@ -143,14 +144,14 @@ public:
 		m_nodes[headIndex] = value;
 	}
 
-	[[nodiscard]] constexpr auto Data() const noexcept -> const uint8_t*
+	/**
+	 * @brief Retrieves the internal data.
+	 * 
+	 * @return A span to the bytes of the data.
+	 */
+	[[nodiscard]] constexpr auto Data() const noexcept -> std::span<const uint8_t>
 	{
-		return m_nodes.data();
-	}
-
-	[[nodiscard]] constexpr auto DataSize() const noexcept -> size_t
-	{
-		return m_nodes.size() * sizeof(uint8_t);
+		return std::span<const uint8_t>(m_nodes.data(), m_nodes.size());
 	}
 
 private:

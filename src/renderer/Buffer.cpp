@@ -2,14 +2,14 @@
 
 #include <glad/gl.h>
 
-Buffer::Buffer(size_t size, const void* data, uint32_t flags)
-	: m_size(size), m_mappingFlags(flags & ~GL_DYNAMIC_STORAGE_BIT), m_mappedStorage(nullptr)
+Buffer::Buffer(std::span<const uint8_t> data, uint32_t flags)
+	: m_size(data.size()), m_mappingFlags(flags & ~GL_DYNAMIC_STORAGE_BIT), m_mappedStorage(nullptr)
 {
 	glCreateBuffers(1, &m_handle);
 	glNamedBufferStorage(
 		m_handle,
 		static_cast<GLsizeiptr>(m_size),
-		data,
+		data.data(),
 		static_cast<GLbitfield>(flags) & ~GL_MAP_FLUSH_EXPLICIT_BIT
 	);
 
@@ -29,9 +29,9 @@ Buffer::~Buffer()
 	glDeleteBuffers(1, &m_handle);
 }
 
-auto Buffer::SetData(size_t offset, size_t size, const void* data) noexcept -> void
+auto Buffer::SetData(size_t offset, std::span<const uint8_t> data) noexcept -> void
 {
-	glNamedBufferSubData(m_handle, static_cast<GLintptr>(offset), static_cast<GLsizeiptr>(size), data);
+	glNamedBufferSubData(m_handle, static_cast<GLintptr>(offset), static_cast<GLsizeiptr>(data.size()), data.data());
 }
 
 auto Buffer::Map(uint32_t flags) noexcept -> void*
