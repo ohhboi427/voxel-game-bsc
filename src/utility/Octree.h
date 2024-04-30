@@ -2,6 +2,8 @@
 
 #include "Math.h"
 
+#include <glm/glm.hpp>
+
 #include <cstdint>
 #include <span>
 #include <vector>
@@ -27,13 +29,11 @@ public:
 	 *
 	 * Will return 0 if the value is not stored in the tree.
 	 *
-	 * @param x The x position of the coordinate.
-	 * @param y The y position of the coordinate.
-	 * @param z The z position of the coordinate.
+	 * @param coordinate The coordinate of the value.
 	 *
 	 * @return A value at the given coordinate.
 	 */
-	[[nodiscard]] auto Get(size_t x, size_t y, size_t z) const noexcept -> uint8_t
+	[[nodiscard]] auto Get(glm::uvec3 coordinate) const noexcept -> uint8_t
 	{
 		if(m_nodes.empty())
 		{
@@ -48,13 +48,13 @@ public:
 		while(half >= 1u)
 		{
 			uint8_t childIndex =
-				(x >= half) |
-				((y >= half) << 1u) |
-				((z >= half) << 2u);
+				(coordinate.x >= half) |
+				((coordinate.y >= half) << 1u) |
+				((coordinate.z >= half) << 2u);
 
-			x -= (x >= half) * half;
-			y -= (y >= half) * half;
-			z -= (z >= half) * half;
+			coordinate.x -= static_cast<uint32_t>((coordinate.x >= half) * half);
+			coordinate.y -= static_cast<uint32_t>((coordinate.y >= half) * half);
+			coordinate.z -= static_cast<uint32_t>((coordinate.z >= half) * half);
 
 			uint8_t childMask = 1u << childIndex;
 
@@ -85,12 +85,10 @@ public:
 	 *
 	 * Can't be set to 0.
 	 *
-	 * @param x The x position of the coordinate.
-	 * @param y The y position of the coordinate.
-	 * @param z The z position of the coordinate.
+	 * @param coordinate The coordinate of the value.
 	 * @param value The new value.
 	 */
-	auto Set(size_t x, size_t y, size_t z, uint8_t value) -> void
+	auto Set(glm::uvec3 coordinate, uint8_t value) -> void
 	{
 		if(value == 0u)
 		{
@@ -110,13 +108,13 @@ public:
 		while(half >= 1u)
 		{
 			uint8_t childIndex =
-				(x >= half) |
-				((y >= half) << 1u) |
-				((z >= half) << 2u);
+				(coordinate.x >= half) |
+				((coordinate.y >= half) << 1u) |
+				((coordinate.z >= half) << 2u);
 
-			x -= (x >= half) * half;
-			y -= (y >= half) * half;
-			z -= (z >= half) * half;
+			coordinate.x -= static_cast<uint32_t>((coordinate.x >= half) * half);
+			coordinate.y -= static_cast<uint32_t>((coordinate.y >= half) * half);
+			coordinate.z -= static_cast<uint32_t>((coordinate.z >= half) * half);
 
 			uint8_t childMask = 1u << childIndex;
 

@@ -31,7 +31,9 @@ auto World::Update() -> void
 			glm::ivec2 chunkCoordinate = glm::ivec2(x, y) + cameraCoordinate;
 
 			visibleChunks.insert(chunkCoordinate);
-			if(!m_loadedChunks.contains(chunkCoordinate) && std::ranges::find(m_neededChunks, chunkCoordinate) == m_neededChunks.end())
+			if(
+				!m_loadedChunks.contains(chunkCoordinate) &&
+				std::ranges::find(m_neededChunks, chunkCoordinate) == m_neededChunks.end())
 			{
 				m_neededChunks.push_back(chunkCoordinate);
 			}

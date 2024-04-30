@@ -58,14 +58,14 @@ auto ChunkAllocator::Free(const MemoryBlock& chunkBlock) -> void
 {
 	std::vector<MemoryBlock>::iterator itBefore = std::ranges::find_if(
 		m_freeBlocks,
-		[&chunkBlock] (const MemoryBlock& block) -> bool
+		[&] (const MemoryBlock& block) -> bool
 		{
 			return (block.Offset + block.Size) == chunkBlock.Offset;
 		});
 
 	std::vector<MemoryBlock>::iterator itAfter = std::ranges::find_if(
 		m_freeBlocks,
-		[&chunkBlock] (const MemoryBlock& block) -> bool
+		[&] (const MemoryBlock& block) -> bool
 		{
 			return block.Offset == (chunkBlock.Offset + chunkBlock.Size);
 		});

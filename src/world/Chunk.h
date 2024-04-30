@@ -30,7 +30,7 @@ inline auto Noise() noexcept -> FastNoiseLite&
 
 			for(uint8_t y = 0u; y < Chunk::Size; y++)
 			{
-				chunk.Set(x, y, z, y <= h);
+				chunk.Set(glm::uvec3(x, y, z), y <= h);
 			}
 		}
 	}

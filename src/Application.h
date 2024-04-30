@@ -4,6 +4,7 @@
 
 class Renderer;
 class Window;
+class World;
 
 class Application
 {
@@ -22,4 +23,5 @@ public:
 private:
 	std::unique_ptr<Window> m_window;
 	std::unique_ptr<Renderer> m_renderer;
+	std::unique_ptr<World> m_world;
 };
