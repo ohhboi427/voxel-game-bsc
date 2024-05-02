@@ -3,7 +3,6 @@
 #include <toml++/toml.hpp>
 
 #include <fstream>
-#include <string>
 
 namespace
 {
@@ -28,6 +27,12 @@ template<>
 auto Config::Get<int64_t>(std::string_view table, std::string_view key) -> int64_t&
 {
 	return s_table[table][key].as_integer()->get();
+}
+
+template<>
+auto Config::Get<double>(std::string_view table, std::string_view key) -> double&
+{
+	return s_table[table][key].as_floating_point()->get();
 }
 
 template<>
