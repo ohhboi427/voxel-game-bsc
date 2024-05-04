@@ -1,6 +1,13 @@
 #pragma once
 
+#include "../world/Chunk.h"
+
+#include <glm/glm.hpp>
+#include <glm/gtx/hash.hpp>
+
+#include <mutex>
 #include <span>
+#include <unordered_map>
 #include <vector>
 
 /**
@@ -33,22 +40,53 @@ public:
 	ChunkAllocator(std::span<uint8_t> data);
 
 	/**
-	 * @brief Allocates a block of a buffer.
+	 * @brief Allocates memory for a chunk.
 	 * 
-	 * @param data A span to the allocated memory.
-	 * 
-	 * @return An object containing the data of the block.
+	 * @param coordinate The coordinate of the chunk.
+	 * @param chunk The chunk.
 	 */
-	[[nodiscard]] auto Allocate(std::span<const uint8_t> data) -> MemoryBlock;
+	auto Allocate(const glm::ivec2& coordinate, const Chunk& chunk) -> void;
 
 	/**
-	 * @brief Deallocates a block of memory.
+	 * @brief Frees up the allocated memory of a chunk.
 	 * 
-	 * @param chunkBlock An object containing the data of the block.
+	 * @param coordinate The coordinate of the chunk.
 	 */
-	auto Free(const MemoryBlock& chunkBlock) -> void;
+	auto Free(const glm::ivec2& coordinate) -> void;
+
+	/**
+	 * @brief Retrieves a lock that locks the access to the managed memory.
+	 * 
+	 * @return A scoped lock that locks the managed memory.
+	 */
+	auto GetLock() -> std::scoped_lock<std::mutex>
+	{
+		return std::scoped_lock(m_mutex);
+	}
+
+	/**
+	 * @brief Retrieves an iterator to the first allocated chunk.
+	 * 
+	 * @return An iterator to the first allocated chunk.
+	 */
+	[[nodiscard]] auto begin() const noexcept -> std::unordered_map<glm::ivec2, MemoryBlock>::const_iterator
+	{
+		return m_allocatedChunks.begin();
+	}
+
+	/*
+	 * @brief Retrieves an iterator to the last allocated chunk.
+	 * 
+	 * @return An iterator to the last allocated chunk.
+	 */
+	[[nodiscard]] auto end() const noexcept -> std::unordered_map<glm::ivec2, MemoryBlock>::const_iterator
+	{
+		return m_allocatedChunks.end();
+	}
 
 private:
 	std::span<uint8_t> m_data;
 	std::vector<MemoryBlock> m_freeBlocks;
+	std::unordered_map<glm::ivec2, MemoryBlock> m_allocatedChunks;
+	std::mutex m_mutex;
 };

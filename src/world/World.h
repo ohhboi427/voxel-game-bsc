@@ -4,12 +4,13 @@
 #include "Chunk.h"
 
 #include <deque>
+#include <thread>
 #include <unordered_set>
 
 #include <glm/glm.hpp>
 #include <glm/gtx/hash.hpp>
 
-class Renderer;
+class ChunkAllocator;
 
 /**
  * @brief Holds settings related to a world.
@@ -32,24 +33,49 @@ struct WorldSettings
 class World
 {
 public:
-	World(const WorldSettings& settings, Renderer& renderer);
+	/**
+	 * @brief Sets the settings and the allocator.
+	 * 
+	 * @param settings The settings of the world.
+	 * @param allocator The allocator used to allocate memory for the chunks.
+	 */
+	World(const WorldSettings& settings, ChunkAllocator& allocator);
 
+	/**
+	 * @brief Waits for the chunk generation jobs to finish.
+	 */
+	~World();
+
+	/**
+	 * @brief Updates the loaded chunks.
+	 */
 	auto Update() -> void;
 
+	/**
+	 * @brief Retrieves the world's camera.
+	 * 
+	 * @return A reference to the camera.
+	 */
 	[[nodiscard]] auto GetCamera() noexcept -> Camera&
 	{
 		return m_camera;
 	}
 
+	/**
+	 * @brief Retrieves the world's camera.
+	 * 
+	 * @return A const reference to the camera.
+	 */
 	[[nodiscard]] auto GetCamera() const noexcept -> const Camera&
 	{
 		return m_camera;
 	}
 
 private:
-	Camera m_camera;
-	Renderer& m_renderer;
 	WorldSettings m_settings;
+	Camera m_camera;
+	ChunkAllocator& m_allocator;
+	std::vector<std::thread> m_jobs;
 	std::deque<glm::ivec2> m_neededChunks;
 	std::unordered_set<glm::ivec2> m_loadedChunks;
 

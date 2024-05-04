@@ -4,13 +4,9 @@
 #include "../utility/ChunkAllocator.h"
 
 #include <glm/glm.hpp>
-#include <glm/ext.hpp>
-#include <glm/gtx/hash.hpp>
 
 #include <cstdint>
 #include <memory>
-#include <mutex>
-#include <unordered_map>
 
 class Buffer;
 class Shader;
@@ -57,19 +53,14 @@ public:
 	auto operator=(Renderer&&) noexcept -> Renderer& = delete;
 
 	/**
-	 * @brief Submits a chunk to be rendered.
-	 *
-	 * @param coordinate The coordinate of the chunk.
-	 * @param chunk The submitted chunk.
+	 * @brief Retrieves the chunk allocator.
+	 * 
+	 * @return A reference to the chunk allocator.
 	 */
-	auto SubmitChunk(const glm::ivec2& coordinate, const Chunk& chunk) -> void;
-
-	/**
-	 * @brief Removes a chunk from the submitted chunks.
-	 *
-	 * @param coordinate The coordinate of the chunk.
-	 */
-	auto RemoveChunk(const glm::ivec2& coordinate) -> void;
+	[[nodiscard]] auto GetChunkAllocator() noexcept -> ChunkAllocator&
+	{
+		return *m_chunkAllocator;
+	}
 
 	/**
 	 * @brief Updates camera data.
@@ -94,8 +85,6 @@ private:
 	std::unique_ptr<Shader> m_screenShader;
 	std::unique_ptr<Shader> m_raygenShader;
 	std::unique_ptr<ChunkAllocator> m_chunkAllocator;
-	std::mutex m_chunkDataMutex{};
-	std::unordered_map<glm::ivec2, MemoryBlock> m_submittedChunks;
 	uint32_t m_dummyVertexArray;
 	uint32_t m_renderTexture;
 

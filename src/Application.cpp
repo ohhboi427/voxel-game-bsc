@@ -17,7 +17,7 @@ Application::Application()
 
 	m_window = std::make_unique<Window>(WindowSettings::LoadFromConfig());
 	m_renderer = std::make_unique<Renderer>(RendererSettings::LoadFromConfig(), *m_window);
-	m_world = std::make_unique<World>(WorldSettings::LoadFromConfig(), *m_renderer);
+	m_world = std::make_unique<World>(WorldSettings::LoadFromConfig(), m_renderer->GetChunkAllocator());
 }
 
 Application::~Application()
@@ -32,6 +32,7 @@ auto Application::Run() -> void
 		glfwPollEvents();
 
 		m_world->GetCamera().Position.x -= 0.1f;
+		m_renderer->SetCamera(m_world->GetCamera());
 		m_world->Update();
 		m_renderer->Render();
 	}

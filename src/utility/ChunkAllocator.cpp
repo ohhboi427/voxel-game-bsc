@@ -13,8 +13,17 @@ ChunkAllocator::ChunkAllocator(std::span<uint8_t> data)
 		});
 }
 
-auto ChunkAllocator::Allocate(std::span<const uint8_t> data) -> MemoryBlock
+auto ChunkAllocator::Allocate(const glm::ivec2& coordinate, const Chunk& chunk) -> void
 {
+	std::scoped_lock lock(m_mutex);
+
+	if(m_allocatedChunks.contains(coordinate))
+	{
+		return;
+	}
+
+	std::span<const uint8_t> data = chunk.Data();
+
 	// Find a free block that is large enough.
 	auto it = std::ranges::find_if(
 		m_freeBlocks,
@@ -25,7 +34,7 @@ auto ChunkAllocator::Allocate(std::span<const uint8_t> data) -> MemoryBlock
 
 	if(it == m_freeBlocks.end())
 	{
-		return {};
+		return;
 	}
 
 	MemoryBlock chunkBlock{
@@ -51,11 +60,20 @@ auto ChunkAllocator::Allocate(std::span<const uint8_t> data) -> MemoryBlock
 		m_data.subspan(chunkBlock.Offset, chunkBlock.Size).begin()
 	);
 
-	return chunkBlock;
+	m_allocatedChunks.insert({ coordinate, chunkBlock });
 }
 
-auto ChunkAllocator::Free(const MemoryBlock& chunkBlock) -> void
+auto ChunkAllocator::Free(const glm::ivec2& coordinate) -> void
 {
+	std::scoped_lock lock(m_mutex);
+
+	if(!m_allocatedChunks.contains(coordinate))
+	{
+		return;
+	}
+
+	const MemoryBlock& chunkBlock = m_allocatedChunks.at(coordinate);
+
 	std::vector<MemoryBlock>::iterator itBefore = std::ranges::find_if(
 		m_freeBlocks,
 		[&] (const MemoryBlock& block) -> bool
@@ -97,4 +115,6 @@ auto ChunkAllocator::Free(const MemoryBlock& chunkBlock) -> void
 		itAfter->Offset -= chunkBlock.Size;
 		itAfter->Size += chunkBlock.Size;
 	}
+
+	m_allocatedChunks.erase(coordinate);
 }

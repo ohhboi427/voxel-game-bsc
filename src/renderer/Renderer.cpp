@@ -9,6 +9,7 @@
 
 #include <glad/gl.h>
 #include <GLFW/glfw3.h>
+#include <glm/ext.hpp>
 #include <glm/gtx/vec_swizzle.hpp>
 
 using namespace Literals;
@@ -79,28 +80,6 @@ Renderer::~Renderer()
 	glDeleteVertexArrays(1, &m_dummyVertexArray);
 }
 
-auto Renderer::SubmitChunk(const glm::ivec2& coordinate, const Chunk& chunk) -> void
-{
-	{
-		std::scoped_lock lock(m_chunkDataMutex);
-
-		MemoryBlock block = m_chunkAllocator->Allocate(chunk.Data());
-		m_submittedChunks.insert_or_assign(coordinate, block);
-	}
-}
-
-auto Renderer::RemoveChunk(const glm::ivec2& coordinate) -> void
-{
-	{
-		std::scoped_lock lock(m_chunkDataMutex);
-
-		MemoryBlock block = m_submittedChunks.at(coordinate);
-		m_chunkAllocator->Free(block);
-
-		m_submittedChunks.erase(coordinate);
-	}
-}
-
 auto Renderer::SetCamera(const Camera& camera) -> void
 {
 	glm::quat rotation(glm::radians(camera.Rotation));
@@ -131,10 +110,10 @@ auto Renderer::Render() -> void
 	glWaitSync(bufferUploadFence, 0, GL_TIMEOUT_IGNORED);
 
 	{
-		std::scoped_lock lock(m_chunkDataMutex);
+		auto lock = m_chunkAllocator->GetLock();
 
 		m_raygenShader->Use();
-		for(const auto& [coordinate, block] : m_submittedChunks)
+		for(const auto& [coordinate, block] : *m_chunkAllocator)
 		{
 			DrawChunk(coordinate, block);
 		}

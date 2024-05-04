@@ -6,18 +6,23 @@
 #include <glm/gtx/vec_swizzle.hpp>
 
 #include <algorithm>
-#include <future>
-#include <iostream>
 #include <ranges>
-#include <thread>
 
-World::World(const WorldSettings& settings, Renderer& renderer)
-	: m_renderer(renderer), m_settings(settings), m_camera{
+World::World(const WorldSettings& settings, ChunkAllocator& allocator)
+	: m_allocator(allocator), m_settings(settings), m_camera{
 		.Position = glm::vec3(-32.0f, 64.0f, 128.0f),
 		.Rotation = glm::vec3(-20.0f, -70.0f, 0.0f),
 		.FieldOfView = 70.0f
 	}
 {}
+
+World::~World()
+{
+	for(auto& job : m_jobs)
+	{
+		job.join();
+	}
+}
 
 auto World::Update() -> void
 {
@@ -41,15 +46,17 @@ auto World::Update() -> void
 		}
 	}
 
+	// Lunch one job per frame
 	if(!m_neededChunks.empty())
 	{
 		glm::ivec2& chunkCoordinate = m_neededChunks.front();
 
-		LoadChunk(chunkCoordinate);
+		m_jobs.emplace_back(&World::LoadChunk, this, chunkCoordinate);
 
 		m_neededChunks.pop_front();
 	}
 
+	// Remove chunks that have been loaded
 	std::erase_if(
 		m_loadedChunks,
 		[&] (const glm::ivec2& chunkCoordinate) -> bool
@@ -59,13 +66,19 @@ auto World::Update() -> void
 			bool shouldUnload = distance.x > m_settings.RenderDistance || distance.y > m_settings.RenderDistance;
 			if(shouldUnload)
 			{
-				m_renderer.RemoveChunk(chunkCoordinate);
+				m_allocator.Free(chunkCoordinate);
 			}
 
 			return shouldUnload;
 		});
 
-	m_renderer.SetCamera(m_camera);
+	// Remove the jobs that are finished
+	std::erase_if(
+		m_jobs,
+		[] (const std::thread& thread) -> bool
+		{
+			return !thread.joinable();
+		});
 }
 
 auto World::LoadChunk(glm::ivec2 coordinate) -> void
@@ -74,7 +87,7 @@ auto World::LoadChunk(glm::ivec2 coordinate) -> void
 
 	m_loadedChunks.insert(coordinate);
 
-	m_renderer.SubmitChunk(coordinate, chunk);
+	m_allocator.Allocate(coordinate, chunk);
 }
 
 auto WorldSettings::LoadFromConfig() -> WorldSettings
