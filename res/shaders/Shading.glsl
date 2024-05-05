@@ -7,21 +7,24 @@
 const vec4 SunLight = vec4(1.00, 0.95, 0.90, 1.00);
 const vec4 SkyLight = vec4(0.60, 0.80, 1.00, 0.10);
 
+float CalculateLightStrength(uint normal)
+{
+	switch(normal)
+	{
+	case NormalYZ:
+		return 0.8;
+	case NormalXZ:
+		return 1.0;
+	case NormalXY:
+		return 0.6;
+	}
+
+	return 0.0;
+}
+
 vec3 Shade(RayHitInfo hitInfo)
 {
-	float lightStrength;
-	switch(hitInfo.Normal)
-	{
-	case 0:
-		lightStrength = 0.8;
-		break;
-	case 1:
-		lightStrength = 1.0;
-		break;
-	case 2:
-		lightStrength = 0.6;
-		break;
-	}
+	float lightStrength = CalculateLightStrength(hitInfo.Normal);
 
 	return (SunLight.xyz * SunLight.w + SkyLight.xyz * SkyLight.w) * lightStrength;
 }

@@ -73,7 +73,7 @@ bool RayOctreeTraversal(vec3 rayOrigin, vec3 rayDirection, float maxDistance, ou
 	ivec3 stepDirection = ivec3(sign(rayDirection));
 
 	float rayLength = 0.0;
-	while(hitInfo.Distance < (boxIntersectTest.y - boxIntersectTest.x))
+	while(hitInfo.Point.w < (boxIntersectTest.y - boxIntersectTest.x))
 	{
 		uint headIndex = u_drawData.z;
 		uint parentIndex = u_drawData.z;
@@ -109,14 +109,14 @@ bool RayOctreeTraversal(vec3 rayOrigin, vec3 rayDirection, float maxDistance, ou
 					if(d.x < d.z)
 					{
 						rayOriginInChunk += rayDirection * stepSize.x * distanceToFarCorner.x;
-						hitInfo.Distance += d.x;
-						hitInfo.Normal = NormalIndex.x;
+						hitInfo.Point.w += d.x;
+						hitInfo.Normal = NormalYZ;
 					}
 					else
 					{
 						rayOriginInChunk += rayDirection * stepSize.z * distanceToFarCorner.z;
-						hitInfo.Distance += d.z;
-						hitInfo.Normal = NormalIndex.z;
+						hitInfo.Point.w += d.z;
+						hitInfo.Normal = NormalXY;
 					}
 				}
 				else
@@ -124,14 +124,14 @@ bool RayOctreeTraversal(vec3 rayOrigin, vec3 rayDirection, float maxDistance, ou
 					if(d.y < d.z)
 					{
 						rayOriginInChunk += rayDirection * stepSize.y * distanceToFarCorner.y;
-						hitInfo.Distance += d.y;
-						hitInfo.Normal = NormalIndex.y;
+						hitInfo.Point.w += d.y;
+						hitInfo.Normal = NormalXZ;
 					}
 					else
 					{
 						rayOriginInChunk += rayDirection * stepSize.z * distanceToFarCorner.z;
-						hitInfo.Distance += d.z;
-						hitInfo.Normal = NormalIndex.z;
+						hitInfo.Point.w += d.z;
+						hitInfo.Normal = NormalXY;
 					}
 				}
 
@@ -152,8 +152,8 @@ bool RayOctreeTraversal(vec3 rayOrigin, vec3 rayDirection, float maxDistance, ou
 
 		if(nodeHalfSize == 0)
 		{
-			hitInfo.Distance += boxIntersectTest.x;
-			hitInfo.Point = rayOrigin + hitInfo.Distance * rayDirection;
+			hitInfo.Point.w += boxIntersectTest.x;
+			hitInfo.Point.xyz = rayOrigin + hitInfo.Point.w * rayDirection;
 			return true;
 		}
 	}
@@ -179,26 +179,26 @@ bool RayVoxelIntersection(vec3 rayOrigin, vec3 rayDirection, float maxDistance, 
 
 	vec3 rayLength = abs((mapPosition + max(stepDirection, vec3(0.0)) - rayOriginInChunk) * stepSize);
 
-	hitInfo.Distance = 0.0;
-	while(hitInfo.Distance < (boxIntersectTest.y - boxIntersectTest.x))
+	hitInfo.Point.w = 0.0;
+	while(hitInfo.Point.w < (boxIntersectTest.y - boxIntersectTest.x))
 	{
 		if(rayLength.x < rayLength.y)
 		{
 			if(rayLength.x < rayLength.z)
 			{
 				mapPosition.x += stepDirection.x;
-				hitInfo.Distance = rayLength.x;
+				hitInfo.Point.w = rayLength.x;
 				rayLength.x += stepSize.x;
 
-				hitInfo.Normal = NormalIndex.x;
+				hitInfo.Normal = NormalYZ;
 			}
 			else
 			{
 				mapPosition.z += stepDirection.z;
-				hitInfo.Distance = rayLength.z;
+				hitInfo.Point.w = rayLength.z;
 				rayLength.z += stepSize.z;
 
-				hitInfo.Normal = NormalIndex.z;
+				hitInfo.Normal = NormalXY;
 			}
 		}
 		else
@@ -206,35 +206,35 @@ bool RayVoxelIntersection(vec3 rayOrigin, vec3 rayDirection, float maxDistance, 
 			if(rayLength.y < rayLength.z)
 			{
 				mapPosition.y += stepDirection.y;
-				hitInfo.Distance = rayLength.y;
+				hitInfo.Point.w = rayLength.y;
 				rayLength.y += stepSize.y;
 
-				hitInfo.Normal = NormalIndex.y;
+				hitInfo.Normal = NormalXZ;
 			}
 			else
 			{
 				mapPosition.z += stepDirection.z;
-				hitInfo.Distance = rayLength.z;
+				hitInfo.Point.w = rayLength.z;
 				rayLength.z += stepSize.z;
 
-				hitInfo.Normal = NormalIndex.z;
+				hitInfo.Normal = NormalXY;
 			}
 		}
 
 		// On Intel iGPU, reading u_drawData.w is unreasonably slow. I mean from 160 to 60 fps. On NVidia it works fine.
 		if(GetVoxel(mapPosition, u_drawData.z, u_drawData.w))
 		{
-			hitInfo.Distance += boxIntersectTest.x;
-			hitInfo.Point = rayOrigin + hitInfo.Distance * rayDirection;
+			hitInfo.Point.w += boxIntersectTest.x;
+			hitInfo.Point.xyz = rayOrigin + hitInfo.Point.w * rayDirection;
 			switch(hitInfo.Normal)
 			{
-			case 0:
+			case NormalYZ:
 				hitInfo.UV = hitInfo.Point.zy - floor(hitInfo.Point.zy);
 				break;
-			case 1:
+			case NormalXZ:
 				hitInfo.UV = hitInfo.Point.zx - floor(hitInfo.Point.zx);
 				break;
-			case 2:
+			case NormalXY:
 				hitInfo.UV = hitInfo.Point.xy - floor(hitInfo.Point.xy);
 				break;
 			}
@@ -270,7 +270,7 @@ void main()
 	RayHitInfo hitInfo;
 	if(RayVoxelIntersection(rayOrigin, rayDirection, depth, hitInfo))
 	{
-		vec4 color = vec4(Shade(hitInfo), hitInfo.Distance);
+		vec4 color = vec4(Shade(hitInfo), hitInfo.Point.w);
 
 		imageStore(u_renderedImage, ivec2(gl_GlobalInvocationID.xy), color);
 	}
