@@ -1,6 +1,11 @@
 #ifndef __OCTREE_GLSL__
 #define __OCTREE_GLSL__
 
+layout(binding = 0, std430) buffer VoxelDataStorage
+{
+	uint VoxelData[];
+};
+
 const uint CHUNK_SIZE = 32;
 
 uint GetByte(uint index)

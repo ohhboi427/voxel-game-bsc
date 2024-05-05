@@ -13,24 +13,14 @@ layout(binding = 1, std140) uniform ScreenProperties
 	uvec2 Size;
 } u_screenProperties;
 
-layout(binding = 0, std430) buffer VoxelDataStorage
-{
-	uint VoxelData[];
-};
-
 layout(binding = 0, rgba16f) uniform image2D u_renderedImage;
 
 // xy -> coordiante, z -> offset, w -> LOD
 layout(location = 0) uniform ivec4 u_drawData = ivec4(0, 0, 0, 0);
 
 #include "Octree.glsl"
-
-struct RayHitInfo
-{
-	float Distance;
-	vec3 Normal;
-	vec3 Point;
-};
+#include "Shading.glsl"
+#include "RayHitInfo.glsl"
 
 // x -> Distance to the nearest intersection.
 // y -> Distance to the furthest intersection.
@@ -120,13 +110,13 @@ bool RayOctreeTraversal(vec3 rayOrigin, vec3 rayDirection, float maxDistance, ou
 					{
 						rayOriginInChunk += rayDirection * stepSize.x * distanceToFarCorner.x;
 						hitInfo.Distance += d.x;
-						hitInfo.Normal = vec3(-stepDirection.x, 0.0, 0.0);
+						hitInfo.Normal = NormalIndex.x;
 					}
 					else
 					{
 						rayOriginInChunk += rayDirection * stepSize.z * distanceToFarCorner.z;
 						hitInfo.Distance += d.z;
-						hitInfo.Normal = vec3(0.0, 0.0, -stepDirection.z);
+						hitInfo.Normal = NormalIndex.z;
 					}
 				}
 				else
@@ -135,13 +125,13 @@ bool RayOctreeTraversal(vec3 rayOrigin, vec3 rayDirection, float maxDistance, ou
 					{
 						rayOriginInChunk += rayDirection * stepSize.y * distanceToFarCorner.y;
 						hitInfo.Distance += d.y;
-						hitInfo.Normal = vec3(0.0, -stepDirection.y, 0.0);
+						hitInfo.Normal = NormalIndex.y;
 					}
 					else
 					{
 						rayOriginInChunk += rayDirection * stepSize.z * distanceToFarCorner.z;
 						hitInfo.Distance += d.z;
-						hitInfo.Normal = vec3(0.0, 0.0, -stepDirection.z);
+						hitInfo.Normal = NormalIndex.z;
 					}
 				}
 
@@ -200,7 +190,7 @@ bool RayVoxelIntersection(vec3 rayOrigin, vec3 rayDirection, float maxDistance, 
 				hitInfo.Distance = rayLength.x;
 				rayLength.x += stepSize.x;
 
-				hitInfo.Normal = vec3(-stepDirection.x, 0.0, 0.0);
+				hitInfo.Normal = NormalIndex.x;
 			}
 			else
 			{
@@ -208,7 +198,7 @@ bool RayVoxelIntersection(vec3 rayOrigin, vec3 rayDirection, float maxDistance, 
 				hitInfo.Distance = rayLength.z;
 				rayLength.z += stepSize.z;
 
-				hitInfo.Normal = vec3(0.0, 0.0, -stepDirection.z);
+				hitInfo.Normal = NormalIndex.z;
 			}
 		}
 		else
@@ -219,7 +209,7 @@ bool RayVoxelIntersection(vec3 rayOrigin, vec3 rayDirection, float maxDistance, 
 				hitInfo.Distance = rayLength.y;
 				rayLength.y += stepSize.y;
 
-				hitInfo.Normal = vec3(0.0, -stepDirection.y, 0.0);
+				hitInfo.Normal = NormalIndex.y;
 			}
 			else
 			{
@@ -227,7 +217,7 @@ bool RayVoxelIntersection(vec3 rayOrigin, vec3 rayDirection, float maxDistance, 
 				hitInfo.Distance = rayLength.z;
 				rayLength.z += stepSize.z;
 
-				hitInfo.Normal = vec3(0.0, 0.0, -stepDirection.z);
+				hitInfo.Normal = NormalIndex.z;
 			}
 		}
 
@@ -236,6 +226,18 @@ bool RayVoxelIntersection(vec3 rayOrigin, vec3 rayDirection, float maxDistance, 
 		{
 			hitInfo.Distance += boxIntersectTest.x;
 			hitInfo.Point = rayOrigin + hitInfo.Distance * rayDirection;
+			switch(hitInfo.Normal)
+			{
+			case 0:
+				hitInfo.UV = hitInfo.Point.zy - floor(hitInfo.Point.zy);
+				break;
+			case 1:
+				hitInfo.UV = hitInfo.Point.zx - floor(hitInfo.Point.zx);
+				break;
+			case 2:
+				hitInfo.UV = hitInfo.Point.xy - floor(hitInfo.Point.xy);
+				break;
+			}
 			return true;
 		}
 	}
@@ -257,9 +259,6 @@ vec3 GetRayDirection(vec2 uv)
 	return normalize(worldDir);
 }
 
-const float AmbientLight = 0.05;
-const float SunLight = 1.0;
-
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 void main()
 {
@@ -271,10 +270,7 @@ void main()
 	RayHitInfo hitInfo;
 	if(RayVoxelIntersection(rayOrigin, rayDirection, depth, hitInfo))
 	{
-		const vec3 lightDirection = normalize(hitInfo.Point - vec3(80.0, 64.0, 80.0));
-		float lightStrength = dot(hitInfo.Normal, -lightDirection) * SunLight + AmbientLight;
-
-		vec4 color = vec4(vec3(lightStrength), hitInfo.Distance);
+		vec4 color = vec4(Shade(hitInfo), hitInfo.Distance);
 
 		imageStore(u_renderedImage, ivec2(gl_GlobalInvocationID.xy), color);
 	}
