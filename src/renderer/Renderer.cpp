@@ -2,6 +2,7 @@
 
 #include "Buffer.h"
 #include "Shader.h"
+#include "RenderTexture.h"
 #include "Window.h"
 #include "../world/Camera.h"
 #include "../utility/Config.h"
@@ -41,16 +42,7 @@ Renderer::Renderer(const RendererSettings& settings, const Window& window)
 
 	InitializeChunkData();
 
-	m_renderTexture;
-	glCreateTextures(GL_TEXTURE_2D, 1, &m_renderTexture);
-	glTextureParameteri(m_renderTexture, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTextureParameteri(m_renderTexture, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	glTextureParameteri(m_renderTexture, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTextureParameteri(m_renderTexture, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTextureStorage2D(m_renderTexture, 1, GL_RGBA16F, static_cast<GLsizei>(m_window.GetSize().x), static_cast<GLsizei>(m_window.GetSize().y));
-	glBindTextureUnit(0u, m_renderTexture);
-	glBindImageTexture(0u, m_renderTexture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
-
+	m_renderTexture = std::make_unique<RenderTexture>(m_window.GetSize(), GL_RGBA16F);
 	m_raygenShader = std::make_unique<Shader>(
 		Shader::Sources
 		{
@@ -75,8 +67,6 @@ Renderer::Renderer(const RendererSettings& settings, const Window& window)
 
 Renderer::~Renderer()
 {
-	glDeleteTextures(1, &m_renderTexture);
-
 	glDeleteVertexArrays(1, &m_dummyVertexArray);
 }
 
@@ -104,8 +94,7 @@ auto Renderer::Render() -> void
 {
 	GLsync bufferUploadFence = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0u);
 
-	static constexpr glm::vec4 Clear(0.6f, 0.8f, 1.0f, 1000.0f);
-	glClearTexImage(m_renderTexture, 0u, GL_RGBA, GL_FLOAT, &Clear);
+	m_renderTexture->Clear(glm::vec4(0.6f, 0.8f, 1.0f, 1000.0f));
 
 	glWaitSync(bufferUploadFence, 0, GL_TIMEOUT_IGNORED);
 

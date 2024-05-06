@@ -10,6 +10,7 @@
 
 class Buffer;
 class Shader;
+class RenderTexture;
 class Window;
 struct Camera;
 
@@ -79,14 +80,14 @@ private:
 
 	RendererSettings m_settings;
 	const Window& m_window;
-	std::unique_ptr<Buffer> m_projectionPropertiesBuffer;
-	std::unique_ptr<Buffer> m_screenPropertiesBuffer;
-	std::unique_ptr<Buffer> m_chunkDataBuffer;
+	uint32_t m_dummyVertexArray;
+	std::unique_ptr<RenderTexture> m_renderTexture;
 	std::unique_ptr<Shader> m_screenShader;
 	std::unique_ptr<Shader> m_raygenShader;
+	std::unique_ptr<Buffer> m_screenPropertiesBuffer;
+	std::unique_ptr<Buffer> m_projectionPropertiesBuffer;
+	std::unique_ptr<Buffer> m_chunkDataBuffer;
 	std::unique_ptr<ChunkAllocator> m_chunkAllocator;
-	uint32_t m_dummyVertexArray;
-	uint32_t m_renderTexture;
 
 	/**
 	 * @brief Initializes the chunk data buffer and allocator.
