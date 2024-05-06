@@ -7,4 +7,4 @@ iWidth = 1280
 sTitle = 'voxel-game'
 
 [world]
-iRenderDistance = 8
+iLoadDistance = 8

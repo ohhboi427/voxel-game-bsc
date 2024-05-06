@@ -20,7 +20,7 @@ struct WorldSettings
 	/**
 	 * @brief The number of chunks visible from the camera in one direction.
 	 */
-	uint8_t RenderDistance;
+	uint8_t LoadDistance;
 
 	/**
 	 * @brief Loads the settings from the config file.

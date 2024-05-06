@@ -80,7 +80,7 @@ Renderer::~Renderer()
 	glDeleteVertexArrays(1, &m_dummyVertexArray);
 }
 
-auto Renderer::SetCamera(const Camera& camera) -> void
+auto Renderer::UpdateProjectionData(const Camera& camera) -> void
 {
 	glm::quat rotation(glm::radians(camera.Rotation));
 

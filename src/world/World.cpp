@@ -29,10 +29,9 @@ auto World::Update() -> void
 	glm::ivec2 cameraCoordinate = glm::ivec2(glm::xz(m_camera.Position)) / static_cast<int32_t>(Chunk::Size);
 
 	std::unordered_set<glm::ivec2> visibleChunks;
-
-	for(int32_t x = -m_settings.RenderDistance; x < m_settings.RenderDistance; ++x)
+	for(int32_t x = -m_settings.LoadDistance; x < m_settings.LoadDistance; ++x)
 	{
-		for(int32_t y = -m_settings.RenderDistance; y < m_settings.RenderDistance; ++y)
+		for(int32_t y = -m_settings.LoadDistance; y < m_settings.LoadDistance; ++y)
 		{
 			glm::ivec2 chunkCoordinate = glm::ivec2(x, y) + cameraCoordinate;
 
@@ -63,7 +62,7 @@ auto World::Update() -> void
 		{
 			glm::ivec2 distance = glm::abs(cameraCoordinate - chunkCoordinate);
 
-			bool shouldUnload = distance.x > m_settings.RenderDistance || distance.y > m_settings.RenderDistance;
+			bool shouldUnload = distance.x > m_settings.LoadDistance || distance.y > m_settings.LoadDistance;
 			if(shouldUnload)
 			{
 				m_allocator.Free(chunkCoordinate);
@@ -93,6 +92,6 @@ auto World::LoadChunk(glm::ivec2 coordinate) -> void
 auto WorldSettings::LoadFromConfig() -> WorldSettings
 {
 	return WorldSettings{
-		.RenderDistance = static_cast<uint8_t>(Config::Get<int64_t>("world", "iRenderDistance")),
+		.LoadDistance = static_cast<uint8_t>(Config::Get<int64_t>("world", "iLoadDistance")),
 	};
 }

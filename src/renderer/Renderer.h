@@ -67,7 +67,7 @@ public:
 	 *
 	 * @param camera The new camera data.
 	 */
-	auto SetCamera(const Camera& camera) -> void;
+	auto UpdateProjectionData(const Camera& camera) -> void;
 
 	/**
 	 * @brief Renderes the scene.
