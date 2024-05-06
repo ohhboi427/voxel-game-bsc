@@ -18,7 +18,7 @@ World::World(const WorldSettings& settings, ChunkAllocator& allocator)
 
 World::~World()
 {
-	for(auto& job : m_jobs)
+	for(auto& job : m_chunkLoadingJobs)
 	{
 		job.join();
 	}
@@ -50,7 +50,7 @@ auto World::Update() -> void
 	{
 		glm::ivec2& chunkCoordinate = m_neededChunks.front();
 
-		m_jobs.emplace_back(&World::LoadChunk, this, chunkCoordinate);
+		m_chunkLoadingJobs.emplace_back(&World::LoadChunk, this, chunkCoordinate);
 
 		m_neededChunks.pop_front();
 	}
@@ -73,7 +73,7 @@ auto World::Update() -> void
 
 	// Remove the jobs that are finished
 	std::erase_if(
-		m_jobs,
+		m_chunkLoadingJobs,
 		[] (const std::thread& thread) -> bool
 		{
 			return !thread.joinable();

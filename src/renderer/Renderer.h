@@ -76,10 +76,10 @@ public:
 	auto Render() -> void;
 
 private:
-	static constexpr size_t DrawDataLocation = 0u;
+	static constexpr size_t DrawDataUniformLocation = 0u;
 
 	RendererSettings m_settings;
-	const Window& m_window;
+	const Window& m_targetWindow;
 	uint32_t m_dummyVertexArray;
 	std::unique_ptr<RenderTexture> m_renderTexture;
 	std::unique_ptr<Shader> m_screenShader;
@@ -90,14 +90,9 @@ private:
 	std::unique_ptr<ChunkAllocator> m_chunkAllocator;
 
 	/**
-	 * @brief Initializes the chunk data buffer and allocator.
+	 * @brief Initialies the resources used for rendering.
 	 */
-	auto InitializeChunkData() -> void;
-
-	/**
-	 * @brief Initialies the projection and screen data buffers.
-	 */
-	auto InitializeProjectionData() -> void;
+	auto InitializeRenderPipeline() -> void;
 
 	/**
 	 * @brief Issues a draw call to draw one chunk.

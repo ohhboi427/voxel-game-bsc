@@ -28,6 +28,10 @@ namespace Config
 	 * @return A reference to the value.
 	 */
 	template<typename T>
-		requires (std::disjunction_v<std::is_same<T, int64_t>, std::is_same<T, double>, std::is_same<T, bool>, std::is_same<T, std::string>>)
+		requires (std::disjunction_v<
+			std::is_same<T, int64_t>,
+			std::is_same<T, double>,
+			std::is_same<T, bool>,
+			std::is_same<T, std::string>>)
 	auto Get(std::string_view table, std::string_view key) -> T&;
 }

@@ -75,8 +75,8 @@ private:
 	WorldSettings m_settings;
 	Camera m_camera;
 	ChunkAllocator& m_allocator;
-	std::vector<std::thread> m_jobs;
 	std::deque<glm::ivec2> m_neededChunks;
+	std::vector<std::thread> m_chunkLoadingJobs;
 	std::unordered_set<glm::ivec2> m_loadedChunks;
 
 	/**
