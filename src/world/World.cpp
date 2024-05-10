@@ -11,7 +11,7 @@
 World::World(const WorldSettings& settings, ChunkAllocator& allocator)
 	: m_allocator(allocator), m_settings(settings), m_camera{
 		.Position = glm::vec3(-32.0f, 64.0f, 128.0f),
-		.Rotation = glm::vec3(-20.0f, -70.0f, 0.0f),
+		.Rotation = glm::vec3(-20.0f, 70.0f, 0.0f),
 		.FieldOfView = 70.0f
 	}
 {}

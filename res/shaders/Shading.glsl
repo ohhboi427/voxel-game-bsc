@@ -7,19 +7,15 @@
 const vec4 SunLight = vec4(1.00, 0.95, 0.90, 1.00);
 const vec4 SkyLight = vec4(0.60, 0.80, 1.00, 0.10);
 
+const float NormalLightStrength[3] = {
+	0.8,
+	1.0,
+	0.6,
+};
+
 float CalculateLightStrength(uint normal)
 {
-	switch(normal)
-	{
-	case NormalYZ:
-		return 0.8;
-	case NormalXZ:
-		return 1.0;
-	case NormalXY:
-		return 0.6;
-	}
-
-	return 0.0;
+	return NormalLightStrength[normal];
 }
 
 vec3 Shade(RayHitInfo hitInfo)

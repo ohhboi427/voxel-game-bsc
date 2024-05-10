@@ -55,13 +55,13 @@ public:
 	auto Free(const glm::ivec2& coordinate) -> void;
 
 	/**
-	 * @brief Retrieves a lock that locks the access to the managed memory.
+	 * @brief Retrieves tzhe mutex of the managed memory.
 	 * 
-	 * @return A scoped lock that locks the managed memory.
+	 * @return The mutex of the managed memory.
 	 */
-	auto GetLock() -> std::scoped_lock<std::mutex>
+	auto GetMutex() -> std::mutex&
 	{
-		return std::scoped_lock(m_mutex);
+		return m_mutex;
 	}
 
 	/**

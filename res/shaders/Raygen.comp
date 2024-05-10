@@ -72,8 +72,34 @@ bool RayOctreeTraversal(vec3 rayOrigin, vec3 rayDirection, float maxDistance, ou
 	vec3 stepSize = abs(1.0 / rayDirection);
 	ivec3 stepDirection = ivec3(sign(rayDirection));
 
-	float rayLength = 0.0;
-	while(hitInfo.Point.w < (boxIntersectTest.y - boxIntersectTest.x))
+	/*
+	vec3 _d = (rayOriginInChunk - rayOrigin) / rayDirection;
+	if(_d.x < _d.y)
+	{
+		if(_d.x < _d.z)
+		{
+			hitInfo.Normal = NormalYZ;
+		}
+		else
+		{
+			hitInfo.Normal = NormalXY;
+		}
+	}
+	else
+	{
+		if(_d.y < _d.z)
+		{
+			hitInfo.Normal = NormalXZ;
+		}
+		else
+		{
+			hitInfo.Normal = NormalXY;
+		}
+	}
+	*/
+
+	hitInfo.Point.w = boxIntersectTest.x;
+	while(hitInfo.Point.w < boxIntersectTest.y)
 	{
 		uint headIndex = u_drawData.z;
 		uint parentIndex = u_drawData.z;
@@ -95,26 +121,34 @@ bool RayOctreeTraversal(vec3 rayOrigin, vec3 rayDirection, float maxDistance, ou
 
 			if((GetByte(headIndex) & childMask) == 0)
 			{
-				vec3 farCorner = midPoint + stepDirection * nodeHalfSize;
-				vec3 distanceToFarCorner = abs(farCorner - rayOriginInChunk) + 0.00001;
-				vec3 d = distanceToFarCorner / absRayDirection;
+				vec3 d;
+				if(nodeHalfSize == 0)
+				{
+					 d = stepSize;
+				}
+				else
+				{
+					ivec3 farCorner = midPoint + stepDirection * int(nodeHalfSize);
+					vec3 distanceToFarCorner = abs(vec3(farCorner) - rayOriginInChunk) + 0.001;
+					d = distanceToFarCorner / absRayDirection;
+				}
 
-				// hitInfo.Distance = min(min(d.x, d.y), d.z);
-				// hitInfo.Point = rayOriginInChunk + rayDirection * hitInfo.Distance;
-				// return true;
+				// ivec3 farCorner = midPoint + stepDirection * int(nodeHalfSize);
+				// vec3 distanceToFarCorner = abs(vec3(farCorner) - rayOriginInChunk) + 0.001;
+				// vec3 d = distanceToFarCorner / absRayDirection;
 
 				// Move the ray to the closest edge
 				if(d.x < d.y)
 				{
 					if(d.x < d.z)
 					{
-						rayOriginInChunk += rayDirection * stepSize.x * distanceToFarCorner.x;
+						rayOriginInChunk += rayDirection * d.x;
 						hitInfo.Point.w += d.x;
 						hitInfo.Normal = NormalYZ;
 					}
 					else
 					{
-						rayOriginInChunk += rayDirection * stepSize.z * distanceToFarCorner.z;
+						rayOriginInChunk += rayDirection * d.z;
 						hitInfo.Point.w += d.z;
 						hitInfo.Normal = NormalXY;
 					}
@@ -123,13 +157,13 @@ bool RayOctreeTraversal(vec3 rayOrigin, vec3 rayDirection, float maxDistance, ou
 				{
 					if(d.y < d.z)
 					{
-						rayOriginInChunk += rayDirection * stepSize.y * distanceToFarCorner.y;
+						rayOriginInChunk += rayDirection * d.y;
 						hitInfo.Point.w += d.y;
 						hitInfo.Normal = NormalXZ;
 					}
 					else
 					{
-						rayOriginInChunk += rayDirection * stepSize.z * distanceToFarCorner.z;
+						rayOriginInChunk += rayDirection * d.z;
 						hitInfo.Point.w += d.z;
 						hitInfo.Normal = NormalXY;
 					}
@@ -152,8 +186,19 @@ bool RayOctreeTraversal(vec3 rayOrigin, vec3 rayDirection, float maxDistance, ou
 
 		if(nodeHalfSize == 0)
 		{
-			hitInfo.Point.w += boxIntersectTest.x;
 			hitInfo.Point.xyz = rayOrigin + hitInfo.Point.w * rayDirection;
+			switch(hitInfo.Normal)
+			{
+			case NormalYZ:
+				hitInfo.UV = hitInfo.Point.zy - floor(hitInfo.Point.zy);
+				break;
+			case NormalXZ:
+				hitInfo.UV = hitInfo.Point.zx - floor(hitInfo.Point.zx);
+				break;
+			case NormalXY:
+				hitInfo.UV = hitInfo.Point.xy - floor(hitInfo.Point.xy);
+				break;
+			}
 			return true;
 		}
 	}
@@ -222,7 +267,7 @@ bool RayVoxelIntersection(vec3 rayOrigin, vec3 rayDirection, float maxDistance, 
 		}
 
 		// On Intel iGPU, reading u_drawData.w is unreasonably slow. I mean from 160 to 60 fps. On NVidia it works fine.
-		if(GetVoxel(mapPosition, u_drawData.z, u_drawData.w))
+		if(GetVoxel(mapPosition, u_drawData.z, 0))
 		{
 			hitInfo.Point.w += boxIntersectTest.x;
 			hitInfo.Point.xyz = rayOrigin + hitInfo.Point.w * rayDirection;
@@ -268,7 +313,7 @@ void main()
 	const vec3 rayDirection = GetRayDirection(uv);
 
 	RayHitInfo hitInfo;
-	if(RayVoxelIntersection(rayOrigin, rayDirection, depth, hitInfo))
+	if(RayOctreeTraversal(rayOrigin, rayDirection, depth, hitInfo))
 	{
 		vec4 color = vec4(Shade(hitInfo), hitInfo.Point.w);
 

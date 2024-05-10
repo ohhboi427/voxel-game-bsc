@@ -13,6 +13,9 @@
 #include <glm/ext.hpp>
 #include <glm/gtx/vec_swizzle.hpp>
 
+#include <mutex>
+#include <utility>
+
 using namespace Literals;
 
 namespace
@@ -61,7 +64,7 @@ auto Renderer::InitializeRenderPipeline() -> void
 		Shader::Sources
 		{
 			{ GL_VERTEX_SHADER, "res/shaders/Screen.vert" },
-			{ GL_FRAGMENT_SHADER, "res/shaders/Screen.frag" },
+		{ GL_FRAGMENT_SHADER, "res/shaders/Screen.frag" },
 		});
 
 	m_projectionPropertiesBuffer = std::make_unique<Buffer>(
@@ -116,10 +119,10 @@ auto Renderer::Render() -> void
 
 	glWaitSync(bufferUploadFence, 0, GL_TIMEOUT_IGNORED);
 
+	m_raygenShader->Use();
 	{
-		auto lock = m_chunkAllocator->GetLock();
+		auto lock = std::scoped_lock(m_chunkAllocator->GetMutex());
 
-		m_raygenShader->Use();
 		for(const auto& [coordinate, block] : *m_chunkAllocator)
 		{
 			DrawChunk(coordinate, block);
