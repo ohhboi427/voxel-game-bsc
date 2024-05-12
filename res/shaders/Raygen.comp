@@ -124,18 +124,17 @@ bool RayOctreeTraversal(vec3 rayOrigin, vec3 rayDirection, float maxDistance, ou
 				vec3 d;
 				if(nodeHalfSize == 0)
 				{
-					 d = stepSize;
+					vec2 r = RayBoxIntersection(rayOriginInChunk, rayDirection, floor(rayOriginInChunk), ceil(rayOriginInChunk));
+					hitInfo.Point.w += r.y;
+
+					break;
 				}
 				else
 				{
 					ivec3 farCorner = midPoint + stepDirection * int(nodeHalfSize);
-					vec3 distanceToFarCorner = abs(vec3(farCorner) - rayOriginInChunk) + 0.001;
+					vec3 distanceToFarCorner = abs(vec3(farCorner) - rayOriginInChunk) + 0.0001;
 					d = distanceToFarCorner / absRayDirection;
 				}
-
-				// ivec3 farCorner = midPoint + stepDirection * int(nodeHalfSize);
-				// vec3 distanceToFarCorner = abs(vec3(farCorner) - rayOriginInChunk) + 0.001;
-				// vec3 d = distanceToFarCorner / absRayDirection;
 
 				// Move the ray to the closest edge
 				if(d.x < d.y)
@@ -187,16 +186,18 @@ bool RayOctreeTraversal(vec3 rayOrigin, vec3 rayDirection, float maxDistance, ou
 		if(nodeHalfSize == 0)
 		{
 			hitInfo.Point.xyz = rayOrigin + hitInfo.Point.w * rayDirection;
+
+			vec3 uv = fract(hitInfo.Point.xyz);
 			switch(hitInfo.Normal)
 			{
 			case NormalYZ:
-				hitInfo.UV = hitInfo.Point.zy - floor(hitInfo.Point.zy);
+				hitInfo.UV = uv.zy;
 				break;
 			case NormalXZ:
-				hitInfo.UV = hitInfo.Point.zx - floor(hitInfo.Point.zx);
+				hitInfo.UV = uv.zx;
 				break;
 			case NormalXY:
-				hitInfo.UV = hitInfo.Point.xy - floor(hitInfo.Point.xy);
+				hitInfo.UV = uv.xy;
 				break;
 			}
 			return true;
@@ -315,6 +316,7 @@ void main()
 	RayHitInfo hitInfo;
 	if(RayOctreeTraversal(rayOrigin, rayDirection, depth, hitInfo))
 	{
+		// vec4 color = vec4(vec3(hitInfo.Point.w) / 200, hitInfo.Point.w);
 		vec4 color = vec4(Shade(hitInfo), hitInfo.Point.w);
 
 		imageStore(u_renderedImage, ivec2(gl_GlobalInvocationID.xy), color);

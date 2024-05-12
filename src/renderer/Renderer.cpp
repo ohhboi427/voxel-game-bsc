@@ -64,7 +64,7 @@ auto Renderer::InitializeRenderPipeline() -> void
 		Shader::Sources
 		{
 			{ GL_VERTEX_SHADER, "res/shaders/Screen.vert" },
-		{ GL_FRAGMENT_SHADER, "res/shaders/Screen.frag" },
+			{ GL_FRAGMENT_SHADER, "res/shaders/Screen.frag" },
 		});
 
 	m_projectionPropertiesBuffer = std::make_unique<Buffer>(

@@ -10,6 +10,7 @@
 
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
+#include <glm/ext.hpp>
 
 Application::Application()
 {
@@ -28,12 +29,57 @@ Application::~Application()
 
 auto Application::Run() -> void
 {
+	static constexpr float Speed = 10.0f;
+	static constexpr float MouseSpeed = 0.25f;
+
+	Camera& camera = m_world->GetCamera();
+
+	float current = static_cast<float>(glfwGetTime());
+	glm::dvec2 currentMouse;
+	glfwGetCursorPos(static_cast<GLFWwindow*>(*m_window), &currentMouse.x, &currentMouse.y);
 	while(!glfwWindowShouldClose(static_cast<GLFWwindow*>(*m_window)))
 	{
 		glfwPollEvents();
 
-		m_world->GetCamera().Position.x -= 0.1f;
-		m_renderer->UpdateProjectionData(m_world->GetCamera());
+		float last = current;
+		current = static_cast<float>(glfwGetTime());
+		float dt = current - last;
+
+		glm::dvec2 lastMouse = currentMouse;
+		glfwGetCursorPos(static_cast<GLFWwindow*>(*m_window), &currentMouse.x, &currentMouse.y);
+		glm::vec2 dm(currentMouse - lastMouse);
+
+		camera.Rotation.y -= dm.x * MouseSpeed;
+		camera.Rotation.x -= dm.y * MouseSpeed;
+		camera.Rotation.x = glm::clamp(camera.Rotation.x, -89.999f, 89.999f);
+
+		glm::vec3 movement(0.0f);
+		if(glfwGetKey(static_cast<GLFWwindow*>(*m_window), GLFW_KEY_D))
+		{
+			movement.x += 1.0f;
+		}
+		if(glfwGetKey(static_cast<GLFWwindow*>(*m_window), GLFW_KEY_A))
+		{
+			movement.x -= 1.0f;
+		}
+		if(glfwGetKey(static_cast<GLFWwindow*>(*m_window), GLFW_KEY_W))
+		{
+			movement.z -= 1.0f;
+		}
+		if(glfwGetKey(static_cast<GLFWwindow*>(*m_window), GLFW_KEY_S))
+		{
+			movement.z += 1.0f;
+		}
+		if(movement != glm::vec3(0.0f))
+		{
+			glm::quat rotation = glm::radians(camera.Rotation);
+
+			movement = glm::normalize(movement) * Speed;
+			camera.Position += rotation * movement * dt;
+		}
+
+
+		m_renderer->UpdateProjectionData(camera);
 		m_world->Update();
 		m_renderer->Render();
 	}
