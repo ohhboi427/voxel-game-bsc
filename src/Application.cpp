@@ -78,7 +78,6 @@ auto Application::Run() -> void
 			camera.Position += rotation * movement * dt;
 		}
 
-
 		m_renderer->UpdateProjectionData(camera);
 		m_world->Update();
 		m_renderer->Render();

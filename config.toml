@@ -1,5 +1,5 @@
 [renderer]
-iChunkDataBufferSize = 134217728
+iChunkDataBufferSize = 33554432
 
 [window]
 iHeight = 720

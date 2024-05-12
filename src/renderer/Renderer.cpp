@@ -109,6 +109,9 @@ auto Renderer::UpdateProjectionData(const Camera& camera) -> void
 
 	projectionProperties.ViewInv = glm::inverse(projectionProperties.View);
 	projectionProperties.ProjInv = glm::inverse(projectionProperties.Proj);
+
+	GLsync bufferUploadFence = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0u);
+	glWaitSync(bufferUploadFence, 0, GL_TIMEOUT_IGNORED);
 }
 
 auto Renderer::Render() -> void

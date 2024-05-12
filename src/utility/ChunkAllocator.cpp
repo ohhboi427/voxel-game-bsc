@@ -13,13 +13,13 @@ ChunkAllocator::ChunkAllocator(std::span<uint8_t> data)
 		});
 }
 
-auto ChunkAllocator::Allocate(const glm::ivec2& coordinate, const Chunk& chunk) -> void
+auto ChunkAllocator::Allocate(const glm::ivec2& coordinate, const Chunk& chunk) -> bool
 {
 	std::scoped_lock lock(m_mutex);
 
 	if(m_allocatedChunks.contains(coordinate))
 	{
-		return;
+		return false;
 	}
 
 	std::span<const uint8_t> data = chunk.Data();
@@ -34,7 +34,7 @@ auto ChunkAllocator::Allocate(const glm::ivec2& coordinate, const Chunk& chunk) 
 
 	if(it == m_freeBlocks.end())
 	{
-		return;
+		return false;
 	}
 
 	MemoryBlock chunkBlock{
@@ -61,6 +61,8 @@ auto ChunkAllocator::Allocate(const glm::ivec2& coordinate, const Chunk& chunk) 
 	);
 
 	m_allocatedChunks.insert({ coordinate, chunkBlock });
+
+	return true;
 }
 
 auto ChunkAllocator::Free(const glm::ivec2& coordinate) -> void

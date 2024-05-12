@@ -6,6 +6,7 @@
 #include <glm/gtx/vec_swizzle.hpp>
 
 #include <algorithm>
+#include <chrono>
 #include <ranges>
 
 World::World(const WorldSettings& settings, ChunkAllocator& allocator)
@@ -20,7 +21,7 @@ World::~World()
 {
 	for(auto& job : m_chunkLoadingJobs)
 	{
-		job.join();
+		job.wait();
 	}
 }
 
@@ -50,7 +51,7 @@ auto World::Update() -> void
 	{
 		glm::ivec2& chunkCoordinate = m_neededChunks.front();
 
-		m_chunkLoadingJobs.emplace_back(&World::LoadChunk, this, chunkCoordinate);
+		m_chunkLoadingJobs.emplace_back(std::move(std::async(std::launch::async, &World::LoadChunk, this, chunkCoordinate)));
 
 		m_neededChunks.pop_front();
 	}
@@ -74,19 +75,19 @@ auto World::Update() -> void
 	// Remove the jobs that are finished
 	std::erase_if(
 		m_chunkLoadingJobs,
-		[] (const std::thread& thread) -> bool
+		[] (const std::future<void>& job) -> bool
 		{
-			return !thread.joinable();
+			return job.wait_for(std::chrono::seconds(0)) == std::future_status::ready;
 		});
 }
 
 auto World::LoadChunk(glm::ivec2 coordinate) -> void
 {
 	Chunk chunk = GenerateChunk(coordinate);
-
-	m_loadedChunks.insert(coordinate);
-
-	m_allocator.Allocate(coordinate, chunk);
+	if(m_allocator.Allocate(coordinate, chunk))
+	{
+		m_loadedChunks.insert(coordinate);
+	}
 }
 
 auto WorldSettings::LoadFromConfig() -> WorldSettings

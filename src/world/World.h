@@ -4,7 +4,7 @@
 #include "Chunk.h"
 
 #include <deque>
-#include <thread>
+#include <future>
 #include <unordered_set>
 
 #include <glm/glm.hpp>
@@ -76,7 +76,7 @@ private:
 	Camera m_camera;
 	ChunkAllocator& m_allocator;
 	std::deque<glm::ivec2> m_neededChunks;
-	std::vector<std::thread> m_chunkLoadingJobs;
+	std::vector<std::future<void>> m_chunkLoadingJobs;
 	std::unordered_set<glm::ivec2> m_loadedChunks;
 
 	/**

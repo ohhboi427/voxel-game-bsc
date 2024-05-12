@@ -44,8 +44,10 @@ public:
 	 * 
 	 * @param coordinate The coordinate of the chunk.
 	 * @param chunk The chunk.
+	 *
+	 * @return Whether the allocation was successful.
 	 */
-	auto Allocate(const glm::ivec2& coordinate, const Chunk& chunk) -> void;
+	auto Allocate(const glm::ivec2& coordinate, const Chunk& chunk) -> bool;
 
 	/**
 	 * @brief Frees up the allocated memory of a chunk.
