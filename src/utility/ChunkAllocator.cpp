@@ -93,11 +93,7 @@ auto ChunkAllocator::Free(const glm::ivec2& coordinate) -> void
 	// If there is no adjacent blocks, create a new one.
 	if(itBefore == m_freeBlocks.end() && itAfter == m_freeBlocks.end())
 	{
-		m_freeBlocks.emplace_back(
-			MemoryBlock{
-				.Offset = chunkBlock.Offset,
-				.Size = chunkBlock.Size,
-			});
+		m_freeBlocks.emplace_back(chunkBlock);
 	}
 	// If both exists merge them.
 	else if(itBefore != m_freeBlocks.end() && itAfter != m_freeBlocks.end())

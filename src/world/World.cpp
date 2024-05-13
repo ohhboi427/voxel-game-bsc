@@ -61,15 +61,14 @@ auto World::Update() -> void
 		m_loadedChunks,
 		[&] (const glm::ivec2& chunkCoordinate) -> bool
 		{
-			glm::ivec2 distance = glm::abs(cameraCoordinate - chunkCoordinate);
-
-			bool shouldUnload = distance.x > m_settings.LoadDistance || distance.y > m_settings.LoadDistance;
-			if(shouldUnload)
+			if(!visibleChunks.contains(chunkCoordinate))
 			{
 				m_allocator.Free(chunkCoordinate);
+
+				return true;
 			}
 
-			return shouldUnload;
+			return false;
 		});
 
 	// Remove the jobs that are finished
