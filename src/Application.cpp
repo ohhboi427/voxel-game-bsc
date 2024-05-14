@@ -8,6 +8,7 @@
 #include "utility/ChunkAllocator.h"
 #include "utility/Config.h"
 #include "utility/Input.h"
+#include "utility/Time.h"
 
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
@@ -67,21 +68,16 @@ auto Application::Run() -> void
 			cameraRotation.x -= delta.y * MouseSpeed;
 			cameraRotation.x = glm::clamp(cameraRotation.x, -89.999f, 89.999f);
 		};
-	Camera& camera = m_world->GetCamera();
 
-	float current = static_cast<float>(glfwGetTime());
-	glm::dvec2 currentMouse;
-	glfwGetCursorPos(static_cast<GLFWwindow*>(*m_window), &currentMouse.x, &currentMouse.y);
+	Time::Reset();
 	while(!glfwWindowShouldClose(static_cast<GLFWwindow*>(*m_window)))
 	{
-		glfwPollEvents();
+		Input::Poll();
+		Time::Tick();
 
-		float last = current;
-		current = static_cast<float>(glfwGetTime());
-		float dt = current - last;
-
+		Camera& camera = m_world->GetCamera();
 		camera.Rotation = glm::vec3(cameraRotation, 0.0f);
-		camera.Position += glm::quat(glm::radians(camera.Rotation)) * cameraMovement * dt;
+		camera.Position += glm::quat(glm::radians(camera.Rotation)) * cameraMovement * Time::GetDeltaTime();
 
 		m_renderer->UpdateProjectionData(camera);
 		m_world->Update();

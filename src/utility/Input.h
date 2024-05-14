@@ -31,4 +31,9 @@ namespace Input
 	 * @param window The input capturing window.
 	 */
 	auto Initialize(const Window& window) -> void;
+
+	/**
+	 * @brief Polls all input events.
+	 */
+	auto Poll() -> void;
 }

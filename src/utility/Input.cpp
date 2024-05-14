@@ -50,3 +50,8 @@ auto Input::Initialize(const Window& window) -> void
 			last = current;
 		});
 }
+
+auto Input::Poll() -> void
+{
+	glfwPollEvents();
+}
