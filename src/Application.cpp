@@ -7,6 +7,7 @@
 #include "world/World.h"
 #include "utility/ChunkAllocator.h"
 #include "utility/Config.h"
+#include "utility/Input.h"
 
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
@@ -20,6 +21,8 @@ Application::Application()
 	m_renderer = std::make_unique<Renderer>(RendererSettings::LoadFromConfig(), *m_window);
 
 	m_world = std::make_unique<World>(WorldSettings::LoadFromConfig(), m_renderer->GetChunkAllocator());
+
+	Input::Initialize(*m_window);
 }
 
 Application::~Application()
@@ -29,9 +32,41 @@ Application::~Application()
 
 auto Application::Run() -> void
 {
-	static constexpr float Speed = 10.0f;
-	static constexpr float MouseSpeed = 0.25f;
+	glm::vec3 cameraMovement(0.0f);
+	Input::OnKey += [&] (int key, bool isPressed) -> void
+		{
+			static constexpr float Speed = 10.0f;
 
+			float dir = (isPressed)
+				? 1.0f
+				: -1.0f;
+
+			switch(key)
+			{
+			case GLFW_KEY_D:
+				cameraMovement.x += dir * Speed;
+				break;
+			case GLFW_KEY_A:
+				cameraMovement.x -= dir * Speed;
+				break;
+			case GLFW_KEY_S:
+				cameraMovement.z += dir * Speed;
+				break;
+			case GLFW_KEY_W:
+				cameraMovement.z -= dir * Speed;
+				break;
+			}
+		};
+
+	glm::vec2 cameraRotation(0.0f);
+	Input::OnCursorMove += [&] (const glm::vec2& current, const glm::vec2& delta) -> void
+		{
+			static constexpr float MouseSpeed = 0.25f;
+
+			cameraRotation.y -= delta.x * MouseSpeed;
+			cameraRotation.x -= delta.y * MouseSpeed;
+			cameraRotation.x = glm::clamp(cameraRotation.x, -89.999f, 89.999f);
+		};
 	Camera& camera = m_world->GetCamera();
 
 	float current = static_cast<float>(glfwGetTime());
@@ -45,38 +80,8 @@ auto Application::Run() -> void
 		current = static_cast<float>(glfwGetTime());
 		float dt = current - last;
 
-		glm::dvec2 lastMouse = currentMouse;
-		glfwGetCursorPos(static_cast<GLFWwindow*>(*m_window), &currentMouse.x, &currentMouse.y);
-		glm::vec2 dm(currentMouse - lastMouse);
-
-		camera.Rotation.y -= dm.x * MouseSpeed;
-		camera.Rotation.x -= dm.y * MouseSpeed;
-		camera.Rotation.x = glm::clamp(camera.Rotation.x, -89.999f, 89.999f);
-
-		glm::vec3 movement(0.0f);
-		if(glfwGetKey(static_cast<GLFWwindow*>(*m_window), GLFW_KEY_D))
-		{
-			movement.x += 1.0f;
-		}
-		if(glfwGetKey(static_cast<GLFWwindow*>(*m_window), GLFW_KEY_A))
-		{
-			movement.x -= 1.0f;
-		}
-		if(glfwGetKey(static_cast<GLFWwindow*>(*m_window), GLFW_KEY_W))
-		{
-			movement.z -= 1.0f;
-		}
-		if(glfwGetKey(static_cast<GLFWwindow*>(*m_window), GLFW_KEY_S))
-		{
-			movement.z += 1.0f;
-		}
-		if(movement != glm::vec3(0.0f))
-		{
-			glm::quat rotation = glm::radians(camera.Rotation);
-
-			movement = glm::normalize(movement) * Speed;
-			camera.Position += rotation * movement * dt;
-		}
+		camera.Rotation = glm::vec3(cameraRotation, 0.0f);
+		camera.Position += glm::quat(glm::radians(camera.Rotation)) * cameraMovement * dt;
 
 		m_renderer->UpdateProjectionData(camera);
 		m_world->Update();
