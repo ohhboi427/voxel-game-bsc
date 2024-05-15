@@ -65,7 +65,7 @@ CameraController::CameraController(Camera& camera)
 			ImGui::Text("Use the 'W', 'A', 'S' and 'D' keys to move the camera relative to its rotation. You can rotate the camera using the mouse.");
 			ImGui::End();
 
-			ImGui::SetNextWindowSize(ImVec2(350.0f, 120.0f));
+			ImGui::SetNextWindowSize(ImVec2(350.0f, 100.0f));
 			ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f));
 			ImGui::Begin("Camera", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
 			ImGui::SliderFloat("Movement Speed", &m_movementSpeed, 1.0f, 20.0f, "%.1f");

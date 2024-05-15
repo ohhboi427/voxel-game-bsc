@@ -1,9 +1,11 @@
 #include "World.h"
 
+#include "../renderer/GUI.h"
 #include "../renderer/Renderer.h"
 #include "../utility/Config.h"
 
 #include <glm/gtx/vec_swizzle.hpp>
+#include <imgui/imgui.h>
 
 #include <algorithm>
 #include <chrono>
@@ -15,7 +17,19 @@ World::World(const WorldSettings& settings, ChunkAllocator& allocator)
 		.Rotation = glm::vec3(-20.0f, 70.0f, 0.0f),
 		.FieldOfView = static_cast<float>(Config::Get<double>("camera", "fFieldOfView"))
 	}
-{}
+{
+	GUI::OnGui += [&] (const glm::uvec2& size) -> void
+		{
+			ImGui::SetNextWindowSize(ImVec2(350.0f, 55.0f));
+			ImGui::SetNextWindowPos(ImVec2(0.0f, 100.0f));
+			ImGui::Begin("World", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
+			int ld = m_settings.LoadDistance;
+			ImGui::SliderInt("Load Distance", &ld, 2, 16);
+			m_settings.LoadDistance = ld;
+			Config::Get<int64_t>("world", "iLoadDistance") = m_settings.LoadDistance;
+			ImGui::End();
+		};
+}
 
 World::~World()
 {
