@@ -49,7 +49,7 @@ auto Application::Run() -> void
 
 		if(GUI::IsVisible)
 		{
-			GUI::OnGui();
+			GUI::OnGui(m_window->GetSize());
 		}
 
 		m_cameraController->Update();

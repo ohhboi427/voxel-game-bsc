@@ -52,9 +52,18 @@ CameraController::CameraController(Camera& camera)
 			m_rotation.x = glm::clamp(m_rotation.x, -89.999f, 89.999f);
 		};
 
-	GUI::OnGui += [&] () -> void
+	GUI::OnGui += [&] (const glm::uvec2& windowSize) -> void
 		{
-			ImGui::Begin("Camera");
+			ImGui::SetNextWindowSize(ImVec2(static_cast<float>(windowSize.x), 65.0f));
+			ImGui::SetNextWindowPos(ImVec2(0.0f, static_cast<float>(windowSize.y - 65u)));
+			ImGui::Begin("Guide", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
+			ImGui::Text("Press the 'ESC' button to toggle between camera movement and GUI.");
+			ImGui::Text("Use the 'W', 'A', 'S' and 'D' keys to move the camera relative to its rotation. You can rotate the camera using the mouse.");
+			ImGui::End();
+
+			ImGui::SetNextWindowSize(ImVec2(350.0f, 80.0f));
+			ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f));
+			ImGui::Begin("Camera", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
 			ImGui::DragFloat("Movement speed", &m_movementSpeed, 0.5f, 1.0f, 20.0f, "%.2f");
 			ImGui::DragFloat("Rotation Speed", &m_rotationSpeed, 0.01f, 0.01f, 1.0f, "%.2f");
 			ImGui::End();

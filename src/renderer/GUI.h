@@ -2,6 +2,8 @@
 
 #include "../utility/Action.h"
 
+#include <glm/glm.hpp>
+
 class Window;
 
 namespace GUI
@@ -14,7 +16,7 @@ namespace GUI
 	/**
 	 * @brief Called every frame if the GUI is visible.
 	 */
-	inline Action<> OnGui;
+	inline Action<glm::uvec2> OnGui;
 
 	/**
 	 * @brief Initializes ImGui.
