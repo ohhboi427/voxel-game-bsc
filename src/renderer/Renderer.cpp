@@ -1,8 +1,9 @@
 #include "Renderer.h"
 
 #include "Buffer.h"
-#include "Shader.h"
+#include "GUI.h"
 #include "RenderTexture.h"
+#include "Shader.h"
 #include "Window.h"
 #include "../world/Camera.h"
 #include "../utility/Config.h"
@@ -47,21 +48,11 @@ Renderer::Renderer(const RendererSettings& settings, const Window& window)
 	glfwSwapInterval(0);
 
 	InitializeRenderPipeline();
-
-	ImGui::CreateContext();
-	ImGui::StyleColorsDark();
-
-	ImGui_ImplGlfw_InitForOpenGL(static_cast<GLFWwindow*>(m_targetWindow), true);
-	ImGui_ImplOpenGL3_Init("#version 130");
 }
 
 Renderer::~Renderer()
 {
 	glDeleteVertexArrays(1, &m_dummyVertexArray);
-
-	ImGui_ImplOpenGL3_Shutdown();
-	ImGui_ImplGlfw_Shutdown();
-	ImGui::DestroyContext();
 }
 
 auto Renderer::InitializeRenderPipeline() -> void
