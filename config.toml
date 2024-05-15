@@ -1,3 +1,8 @@
+[camera]
+fFieldOfView = 70.0
+fMovementSpeed = 20.0
+fRotationSpeed = 0.25
+
 [renderer]
 iChunkDataBufferSize = 33554432
 

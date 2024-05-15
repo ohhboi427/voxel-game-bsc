@@ -2,6 +2,7 @@
 
 #include "../renderer/GUI.h"
 #include "../world/Camera.h"
+#include "../utility/Config.h"
 #include "../utility/Input.h"
 #include "../utility/Time.h"
 
@@ -10,7 +11,10 @@
 #include <imgui/imgui.h>
 
 CameraController::CameraController(Camera& camera)
-	: m_camera(camera), m_movementSpeed(10.0f), m_rotationSpeed(0.25f), m_movement(0.0f), m_rotation(0.0f)
+	: m_camera(camera),
+	m_movementSpeed(static_cast<float>(Config::Get<double>("camera", "fMovementSpeed"))),
+	m_rotationSpeed(static_cast<float>(Config::Get<double>("camera", "fRotationSpeed"))),
+	m_movement(0.0f), m_rotation(0.0f)
 {
 	Input::OnKey += [&] (int key, bool isPressed) -> void
 		{
@@ -61,11 +65,15 @@ CameraController::CameraController(Camera& camera)
 			ImGui::Text("Use the 'W', 'A', 'S' and 'D' keys to move the camera relative to its rotation. You can rotate the camera using the mouse.");
 			ImGui::End();
 
-			ImGui::SetNextWindowSize(ImVec2(350.0f, 80.0f));
+			ImGui::SetNextWindowSize(ImVec2(350.0f, 120.0f));
 			ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f));
 			ImGui::Begin("Camera", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
-			ImGui::DragFloat("Movement speed", &m_movementSpeed, 0.5f, 1.0f, 20.0f, "%.2f");
-			ImGui::DragFloat("Rotation Speed", &m_rotationSpeed, 0.01f, 0.01f, 1.0f, "%.2f");
+			ImGui::SliderFloat("Movement Speed", &m_movementSpeed, 1.0f, 20.0f, "%.1f");
+			Config::Get<double>("camera", "fMovementSpeed") = m_movementSpeed;
+			ImGui::SliderFloat("Rotation Speed", &m_rotationSpeed, 0.01f, 1.0f, "%.2f");
+			Config::Get<double>("camera", "fRotationSpeed") = m_rotationSpeed;
+			ImGui::SliderFloat("Field of View", &m_camera.FieldOfView, 30.0f, 90.0f, "%.0f");
+			Config::Get<double>("camera", "fFieldOfView") = m_camera.FieldOfView;
 			ImGui::End();
 		};
 }
