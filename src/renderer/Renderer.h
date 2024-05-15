@@ -71,9 +71,14 @@ public:
 	auto UpdateProjectionData(const Camera& camera) -> void;
 
 	/**
-	 * @brief Renderes the scene.
+	 * @brief Begins a new ImGui frame.
 	 */
-	auto Render() -> void;
+	auto BeginFrame() -> void;
+
+	/**
+	 * @brief Renders the scene.
+	 */
+	auto EndFrame() -> void;
 
 private:
 	static constexpr size_t DrawDataUniformLocation = 0u;

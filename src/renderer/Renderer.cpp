@@ -12,6 +12,9 @@
 #include <GLFW/glfw3.h>
 #include <glm/ext.hpp>
 #include <glm/gtx/vec_swizzle.hpp>
+#include <imgui/imgui.h>
+#include <imgui/backends/imgui_impl_glfw.h>
+#include <imgui/backends/imgui_impl_opengl3.h>
 
 #include <mutex>
 #include <utility>
@@ -44,11 +47,21 @@ Renderer::Renderer(const RendererSettings& settings, const Window& window)
 	glfwSwapInterval(0);
 
 	InitializeRenderPipeline();
+
+	ImGui::CreateContext();
+	ImGui::StyleColorsDark();
+
+	ImGui_ImplGlfw_InitForOpenGL(static_cast<GLFWwindow*>(m_targetWindow), true);
+	ImGui_ImplOpenGL3_Init("#version 130");
 }
 
 Renderer::~Renderer()
 {
 	glDeleteVertexArrays(1, &m_dummyVertexArray);
+
+	ImGui_ImplOpenGL3_Shutdown();
+	ImGui_ImplGlfw_Shutdown();
+	ImGui::DestroyContext();
 }
 
 auto Renderer::InitializeRenderPipeline() -> void
@@ -114,7 +127,14 @@ auto Renderer::UpdateProjectionData(const Camera& camera) -> void
 	glWaitSync(bufferUploadFence, 0, GL_TIMEOUT_IGNORED);
 }
 
-auto Renderer::Render() -> void
+auto Renderer::BeginFrame() -> void
+{
+	ImGui_ImplOpenGL3_NewFrame();
+	ImGui_ImplGlfw_NewFrame();
+	ImGui::NewFrame();
+}
+
+auto Renderer::EndFrame() -> void
 {
 	GLsync bufferUploadFence = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0u);
 
@@ -135,6 +155,9 @@ auto Renderer::Render() -> void
 	m_screenShader->Use();
 	glDrawArrays(GL_TRIANGLES, 0, 3);
 	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
+	ImGui::Render();
+	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
 	glfwSwapBuffers(static_cast<GLFWwindow*>(m_targetWindow));
 }

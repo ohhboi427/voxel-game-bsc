@@ -13,6 +13,7 @@
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 #include <glm/ext.hpp>
+#include <imgui/imgui.h>
 
 Application::Application()
 {
@@ -79,8 +80,11 @@ auto Application::Run() -> void
 		camera.Rotation = glm::vec3(cameraRotation, 0.0f);
 		camera.Position += glm::quat(glm::radians(camera.Rotation)) * cameraMovement * Time::GetDeltaTime();
 
+		m_renderer->BeginFrame();
+
 		m_renderer->UpdateProjectionData(camera);
 		m_world->Update();
-		m_renderer->Render();
+
+		m_renderer->EndFrame();
 	}
 }
