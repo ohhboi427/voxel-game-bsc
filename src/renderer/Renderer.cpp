@@ -73,7 +73,7 @@ auto Renderer::InitializeRenderPipeline() -> void
 
 	m_projectionPropertiesBuffer = std::make_unique<Buffer>(
 		Span(sizeof(ProjectionProperties)),
-		GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
+		GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT | GL_DYNAMIC_STORAGE_BIT);
 	m_projectionPropertiesBuffer->Bind(GL_UNIFORM_BUFFER, 0u);
 
 	m_screenPropertiesBuffer = std::make_unique<Buffer>(
@@ -99,7 +99,8 @@ auto Renderer::UpdateProjectionData(const Camera& camera) -> void
 {
 	glm::quat rotation(glm::radians(camera.Rotation));
 
-	auto& projectionProperties = m_projectionPropertiesBuffer->GetMappedStorage<ProjectionProperties>().front();
+	ProjectionProperties projectionProperties;
+	// auto& projectionProperties = m_projectionPropertiesBuffer->GetMappedStorage<ProjectionProperties>().front();
 	projectionProperties.View = glm::lookAt(
 		camera.Position,
 		camera.Position + rotation * glm::vec3(0.0f, 0.0f, -1.0f),
@@ -114,8 +115,10 @@ auto Renderer::UpdateProjectionData(const Camera& camera) -> void
 	projectionProperties.ViewInv = glm::inverse(projectionProperties.View);
 	projectionProperties.ProjInv = glm::inverse(projectionProperties.Proj);
 
-	GLsync bufferUploadFence = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0u);
-	glWaitSync(bufferUploadFence, 0, GL_TIMEOUT_IGNORED);
+	glNamedBufferSubData(static_cast<GLuint>(*m_projectionPropertiesBuffer.get()), 0u, sizeof(ProjectionProperties), &projectionProperties);
+
+	// GLsync bufferUploadFence = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0u);
+	// glWaitSync(bufferUploadFence, 0, GL_TIMEOUT_IGNORED);
 }
 
 auto Renderer::BeginFrame() -> void
