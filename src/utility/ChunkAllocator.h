@@ -37,7 +37,7 @@ public:
 	 * 
 	 * @param data A span to a buffer.
 	 */
-	ChunkAllocator(std::span<uint8_t> data);
+	ChunkAllocator(size_t size, void* data);
 
 	/**
 	 * @brief Allocates memory for a chunk.

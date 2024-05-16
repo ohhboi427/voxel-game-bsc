@@ -3,8 +3,8 @@
 #include <algorithm>
 #include <ranges>
 
-ChunkAllocator::ChunkAllocator(std::span<uint8_t> data)
-	: m_data(data)
+ChunkAllocator::ChunkAllocator(size_t size, void* data)
+	: m_data(static_cast<uint8_t*>(data), size)
 {
 	m_freeBlocks.emplace_back(
 		MemoryBlock{

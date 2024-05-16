@@ -1,7 +1,6 @@
 #pragma once
 
 #include <cstdint>
-#include <span>
 
 /**
  * @brief OpenGL buffer wrapper.
@@ -14,10 +13,11 @@ public:
 	 *
 	 * It will map the buffer if the 'GL_MAP_PERSISTENT_BIT' is set.
 	 *
-	 * @param data A span to the initial data.
+	 * @oaram size The size of the buffer in bytes.
+	 * @param data A pointer to the memory copied into the buffer.
 	 * @param flags Flags of the buffer's data storage.
 	 */
-	Buffer(std::span<const uint8_t> data = {}, uint32_t flags = 0u);
+	Buffer(size_t size, const void* data = nullptr, uint32_t flags = 0u);
 
 	/**
 	 * @brief Deletes the buffer.
@@ -45,12 +45,12 @@ public:
 	 *
 	 * @tparam The type of the data.
 	 *
-	 * @return A span to the mapped storage.
+	 * @return A pointer to the mapped storage.
 	 */
 	template<typename T = uint8_t>
-	[[nodiscard]] auto GetMappedStorage() const noexcept -> std::span<T>
+	[[nodiscard]] auto GetMappedStorage() const noexcept -> T*
 	{
-		return std::span<T>(static_cast<T*>(m_mappedStorage), m_size);
+		return static_cast<T*>(m_mappedStorage);
 	}
 
 	/**
@@ -59,9 +59,10 @@ public:
 	 * Data can only be changed using this if the 'GL_DYNAMIC_STORAGE_BIT' was set at creation.
 	 *
 	 * @param offset The offset of the set range.
-	 * @param data A span to data copied to the buffer.
+	 * @param size The size of the set data in bytes..
+	 * @param data A pointer to the data copied into the buffer.
 	 */
-	auto SetData(size_t offset, std::span<const uint8_t> data) noexcept -> void;
+	auto SetData(size_t offset, size_t size, const void* data) noexcept -> void;
 
 	/**
 	 * @brief Maps the buffer's storage.

@@ -14,7 +14,7 @@ CameraController::CameraController(Camera& camera)
 	: m_camera(camera),
 	m_movementSpeed(static_cast<float>(Config::Get<double>("camera", "fMovementSpeed"))),
 	m_rotationSpeed(static_cast<float>(Config::Get<double>("camera", "fRotationSpeed"))),
-	m_movement(0.0f), m_rotation(0.0f)
+	m_movement(0.0f), m_rotation(camera.Rotation)
 {
 	Input::OnKey += [&] (int key, bool isPressed) -> void
 		{
