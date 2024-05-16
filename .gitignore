@@ -1,5 +1,6 @@
 # voxel-game
 imgui.ini
+config.toml
 
 # Binaries
 bin/

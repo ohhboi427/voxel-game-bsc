@@ -3,9 +3,11 @@
 #include <toml++/toml.hpp>
 
 #include <fstream>
+#include <filesystem>
 
 namespace
 {
+	constexpr auto DefaultConfigFilePath = "config.default.toml";
 	constexpr auto ConfigFilePath = "config.toml";
 
 	toml::table s_table;
@@ -13,6 +15,11 @@ namespace
 
 auto Config::Load() -> void
 {
+	if(!std::filesystem::exists(ConfigFilePath))
+	{
+		std::filesystem::copy_file(DefaultConfigFilePath, ConfigFilePath);
+	}
+
 	s_table = toml::parse_file(ConfigFilePath);
 }
 
