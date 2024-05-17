@@ -22,9 +22,8 @@ layout(location = 0) uniform ivec4 u_drawData = ivec4(0, 0, 0, 0);
 #include "Shading.glsl"
 #include "RayHitInfo.glsl"
 
-// x -> Distance to the nearest intersection.
-// y -> Distance to the furthest intersection.
-vec2 RayBoxIntersection(vec3 rayOrigin, vec3 rayDirection, vec3 boundsMin, vec3 boundsMax)
+// x -> distance to the nearest intersection, y -> distance to the furthest intersection, z -> normal index of the hit plane
+vec3 RayBoxIntersection(vec3 rayOrigin, vec3 rayDirection, vec3 boundsMin, vec3 boundsMax)
 {
 	vec3 rayDirectionInverse = vec3(1.0) / rayDirection;
 
@@ -32,70 +31,67 @@ vec2 RayBoxIntersection(vec3 rayOrigin, vec3 rayDirection, vec3 boundsMin, vec3 
 	vec2 ty = (vec2(boundsMin.y, boundsMax.y) - vec2(rayOrigin.y)) * rayDirectionInverse.y;
 	vec2 tz = (vec2(boundsMin.z, boundsMax.z) - vec2(rayOrigin.z)) * rayDirectionInverse.z;
 
-	float tmin = max(max(min(tx.x, tx.y), min(ty.x, ty.y)), min(tz.x, tz.y));
-	float tmax = min(min(max(tx.x, tx.y), max(ty.x, ty.y)), max(tz.x, tz.y));
+	float minx = min(tx.x, tx.y);
+	float miny = min(ty.x, ty.y);
+	float minz = min(tz.x, tz.y);
+
+	float maxx = max(tx.x, tx.y);
+	float maxy = max(ty.x, ty.y);
+	float maxz = max(tz.x, tz.y);
+
+	float tmin = max(max(minx, miny), minz);
+	float tmax = min(min(maxx, maxy), maxz);
 
 	// Box behind
 	if(tmax < 0.0)
 	{
-		return vec2(-1.0);
+		return vec3(-1.0);
 	}
 
 	// Doesnt't intersect
 	if(tmin > tmax)
 	{
-		return vec2(-1.0);
+		return vec3(-1.0);
 	}
 
 	// Ray inside box
 	if(tmin < 0.0)
 	{
-		return vec2(0.0, tmax);
+		return vec3(0.0, tmax, 0.0);
 	}
 
-	return vec2(tmin, tmax);
+	uint edge;
+	if(minx == tmin)
+	{
+		edge = NormalYZ;
+	}
+	else if(miny == tmin)
+	{
+		edge = NormalXZ;
+	}
+	else
+	{
+		edge = NormalXY;
+	}
+
+	return vec3(tmin, tmax, edge);
 }
 
 bool RayOctreeTraversal(vec3 rayOrigin, vec3 rayDirection, float maxDistance, out RayHitInfo hitInfo)
 {
-	vec3 rayOriginInChunk = rayOrigin - vec3(u_drawData.x, 0, u_drawData.y) * CHUNK_SIZE;
+	vec3 position = rayOrigin - vec3(u_drawData.x, 0, u_drawData.y) * CHUNK_SIZE;
 
 	// Move the ray origin to the edge of the chunk
-	vec2 boxIntersectTest = RayBoxIntersection(rayOriginInChunk, rayDirection, vec3(0.0), vec3(CHUNK_SIZE));
+	vec3 boxIntersectTest = RayBoxIntersection(position, rayDirection, vec3(0.0), vec3(CHUNK_SIZE));
 	if(boxIntersectTest.x < 0.0 || boxIntersectTest.x > maxDistance)
 	{
 		return false;
 	}
-	rayOriginInChunk += boxIntersectTest.x * rayDirection;
+	position += boxIntersectTest.x * rayDirection;
+	hitInfo.Normal = uint(boxIntersectTest.z);
 
 	vec3 absRayDirection = abs(rayDirection);
 	ivec3 stepDirection = ivec3(sign(rayDirection));
-
-	/*
-	vec3 _d = (rayOriginInChunk - rayOrigin) / rayDirection;
-	if(_d.x < _d.y)
-	{
-		if(_d.x < _d.z)
-		{
-			hitInfo.Normal = NormalYZ;
-		}
-		else
-		{
-			hitInfo.Normal = NormalXY;
-		}
-	}
-	else
-	{
-		if(_d.y < _d.z)
-		{
-			hitInfo.Normal = NormalXZ;
-		}
-		else
-		{
-			hitInfo.Normal = NormalXY;
-		}
-	}
-	*/
 
 	hitInfo.Point.w = boxIntersectTest.x;
 	while(hitInfo.Point.w < boxIntersectTest.y)
@@ -109,7 +105,7 @@ bool RayOctreeTraversal(vec3 rayOrigin, vec3 rayDirection, float maxDistance, ou
 		while(nodeHalfSize > 0)
 		{
 			// Find which octet the ray is in
-			ivec3 octet = ivec3(greaterThanEqual(rayOriginInChunk, midPoint));
+			ivec3 octet = ivec3(greaterThanEqual(position, midPoint));
 
 			uint childIndex = octet.x | (octet.y << 1) | (octet.z << 2);
 			uint childMask = 1 << childIndex;
@@ -125,14 +121,14 @@ bool RayOctreeTraversal(vec3 rayOrigin, vec3 rayDirection, float maxDistance, ou
 				{
 					vec3 midPointF = vec3(midPoint) + vec3(octet * 2 - 1) * 0.5;
 					vec3 farCorner = midPointF + vec3(stepDirection) * 0.5;
-					vec3 distanceToFarCorner = abs(farCorner - rayOriginInChunk) + 0.0001;
+					vec3 distanceToFarCorner = abs(farCorner - position) + 0.0001;
 
 					d = distanceToFarCorner / absRayDirection;
 				}
 				else
 				{
 					ivec3 farCorner = midPoint + stepDirection * int(nodeHalfSize);
-					vec3 distanceToFarCorner = abs(vec3(farCorner) - rayOriginInChunk) + 0.0001;
+					vec3 distanceToFarCorner = abs(vec3(farCorner) - position) + 0.0001;
 					d = distanceToFarCorner / absRayDirection;
 				}
 
@@ -141,13 +137,13 @@ bool RayOctreeTraversal(vec3 rayOrigin, vec3 rayDirection, float maxDistance, ou
 				{
 					if(d.x < d.z)
 					{
-						rayOriginInChunk += rayDirection * d.x;
+						position += rayDirection * d.x;
 						hitInfo.Point.w += d.x;
 						hitInfo.Normal = NormalYZ;
 					}
 					else
 					{
-						rayOriginInChunk += rayDirection * d.z;
+						position += rayDirection * d.z;
 						hitInfo.Point.w += d.z;
 						hitInfo.Normal = NormalXY;
 					}
@@ -156,13 +152,13 @@ bool RayOctreeTraversal(vec3 rayOrigin, vec3 rayDirection, float maxDistance, ou
 				{
 					if(d.y < d.z)
 					{
-						rayOriginInChunk += rayDirection * d.y;
+						position += rayDirection * d.y;
 						hitInfo.Point.w += d.y;
 						hitInfo.Normal = NormalXZ;
 					}
 					else
 					{
-						rayOriginInChunk += rayDirection * d.z;
+						position += rayDirection * d.z;
 						hitInfo.Point.w += d.z;
 						hitInfo.Normal = NormalXY;
 					}
@@ -208,6 +204,7 @@ bool RayOctreeTraversal(vec3 rayOrigin, vec3 rayDirection, float maxDistance, ou
 	return false;
 }
 
+/*
 bool RayVoxelIntersection(vec3 rayOrigin, vec3 rayDirection, float maxDistance, out RayHitInfo hitInfo)
 {
 	vec3 rayOriginInChunk = rayOrigin - vec3(u_drawData.x, 0, u_drawData.y) * CHUNK_SIZE;
@@ -291,6 +288,7 @@ bool RayVoxelIntersection(vec3 rayOrigin, vec3 rayDirection, float maxDistance, 
 
 	return false;
 }
+*/
 
 vec3 GetRayDirection(vec2 uv)
 {
