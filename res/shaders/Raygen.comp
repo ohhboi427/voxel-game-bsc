@@ -106,7 +106,7 @@ bool RayOctreeTraversal(vec3 rayOrigin, vec3 rayDirection, float maxDistance, ou
 
 		uint nodeHalfSize = CHUNK_SIZE / 2;
 		ivec3 midPoint = ivec3(nodeHalfSize);
-		while(nodeHalfSize > 2)
+		while(nodeHalfSize > 0)
 		{
 			// Find which octet the ray is in
 			ivec3 octet = ivec3(greaterThanEqual(rayOriginInChunk, midPoint));
@@ -120,19 +120,21 @@ bool RayOctreeTraversal(vec3 rayOrigin, vec3 rayDirection, float maxDistance, ou
 
 			if((GetByte(headIndex) & childMask) == 0)
 			{
+				vec3 d;
 				if(nodeHalfSize == 0)
 				{
-					vec2 r = RayBoxIntersection(rayOriginInChunk, rayDirection, floor(rayOriginInChunk), ceil(rayOriginInChunk));
-					r.y += 0.0001;
-					hitInfo.Point.w += r.y;
-					rayOriginInChunk += rayDirection * r.y;
+					vec3 midPointF = vec3(midPoint) + vec3(octet * 2 - 1) * 0.5;
+					vec3 farCorner = midPointF + vec3(stepDirection) * 0.5;
+					vec3 distanceToFarCorner = abs(farCorner - rayOriginInChunk) + 0.0001;
 
-					break;
+					d = distanceToFarCorner / absRayDirection;
 				}
-
-				ivec3 farCorner = midPoint + stepDirection * int(nodeHalfSize);
-				vec3 distanceToFarCorner = abs(vec3(farCorner) - rayOriginInChunk) + 0.0001;
-				vec3 d = distanceToFarCorner / absRayDirection;
+				else
+				{
+					ivec3 farCorner = midPoint + stepDirection * int(nodeHalfSize);
+					vec3 distanceToFarCorner = abs(vec3(farCorner) - rayOriginInChunk) + 0.0001;
+					d = distanceToFarCorner / absRayDirection;
+				}
 
 				// Move the ray to the closest edge
 				if(d.x < d.y)
@@ -180,7 +182,7 @@ bool RayOctreeTraversal(vec3 rayOrigin, vec3 rayDirection, float maxDistance, ou
 			parentIndex = headIndex;
 			headIndex += skipCount;
 
-			if(nodeHalfSize == 2)
+			if(nodeHalfSize == 0)
 			{
 				hitInfo.Point.xyz = rayOrigin + hitInfo.Point.w * rayDirection;
 
@@ -201,32 +203,6 @@ bool RayOctreeTraversal(vec3 rayOrigin, vec3 rayDirection, float maxDistance, ou
 				return true;
 			}
 		}
-
-		/*
-		if(nodeHalfSize == 0)
-		{
-			hitInfo.Point.xyz = rayOrigin + hitInfo.Point.w * rayDirection;
-
-			vec3 uv = fract(hitInfo.Point.xyz);
-			switch(hitInfo.Normal)
-			{
-			case NormalYZ:
-				hitInfo.UV = uv.zy;
-				break;
-			case NormalXZ:
-				hitInfo.UV = uv.zx;
-				break;
-			case NormalXY:
-				hitInfo.UV = uv.xy;
-				break;
-			}
-
-			if(GetByte(headIndex) != 0)
-			{
-				return true;
-			}
-		}
-		*/
 	}
 
 	return false;
