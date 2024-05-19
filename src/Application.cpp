@@ -42,8 +42,8 @@ auto Application::Run() -> void
 	Time::Reset();
 	while(!glfwWindowShouldClose(static_cast<GLFWwindow*>(*m_window)))
 	{
-		Input::Poll();
 		Time::Tick();
+		Input::Poll();
 
 		m_renderer->BeginFrame();
 

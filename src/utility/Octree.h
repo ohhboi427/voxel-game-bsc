@@ -44,7 +44,7 @@ public:
 		size_t parentIndex = 0u;
 		uint8_t childIndexInParent = 8u;
 
-		size_t half = m_half;
+		size_t half = s_half;
 		while(half >= 1u)
 		{
 			uint8_t childIndex =
@@ -104,7 +104,7 @@ public:
 		size_t parentIndex = 0u;
 		uint8_t childIndexInParent = 8u;
 
-		size_t half = m_half;
+		size_t half = s_half;
 		while(half >= 1u)
 		{
 			uint8_t childIndex =
@@ -153,7 +153,7 @@ public:
 	}
 
 private:
-	static constexpr size_t m_half = Size / 2u;
+	static constexpr size_t s_half = Size / 2u;
 
 	std::vector<uint8_t> m_nodes;
 };
