@@ -67,6 +67,13 @@ public:
 	}
 
 	/**
+	 * @brief Retrieves whether the window should close.
+	 * 
+	 * @return 'true' if the close button has been pressed, otherwise 'false'.
+	 */
+	[[nodiscard]] auto GetShouldClose() const noexcept -> bool;
+
+	/**
 	 * @brief Retirves the size of the window.
 	 * 
 	 * @return The size of window in pixels.

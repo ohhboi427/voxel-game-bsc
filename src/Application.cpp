@@ -40,7 +40,7 @@ Application::~Application()
 auto Application::Run() -> void
 {
 	Time::Reset();
-	while(!glfwWindowShouldClose(static_cast<GLFWwindow*>(*m_window)))
+	while(!m_window->GetShouldClose())
 	{
 		Time::Tick();
 		Input::Poll();

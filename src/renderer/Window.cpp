@@ -30,6 +30,11 @@ Window::~Window()
 	}
 }
 
+auto Window::GetShouldClose() const noexcept -> bool
+{
+	return static_cast<bool>(glfwWindowShouldClose(m_handle));
+}
+
 auto WindowSettings::LoadFromConfig() -> WindowSettings
 {
 	return WindowSettings{
