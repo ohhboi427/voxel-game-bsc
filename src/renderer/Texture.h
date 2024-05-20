@@ -4,26 +4,36 @@
 
 #include <cstdint>
 #include <unordered_map>
+#include <filesystem>
 
 /**
- * @brief OpenGL texture wrapper as render target.
+ * @brief OpenGL texture wrapper.
  */
-class RenderTexture
+class Texture
 {
 public:
 	/**
-	 * @brief Initialized a texture used as rendering target.
+	 * @brief Initializes a texture as a render target.
+	 *
+	 * It binds the texture as an image.
 	 * 
 	 * @param size The size of the texture in pixels.
 	 * @param format The format used to store the texture's data.
 	 * @param unit The unit that texture will be bound to.
 	 */
-	RenderTexture(const glm::uvec2& size, uint32_t format, uint32_t unit = 0u);
+	Texture(const glm::uvec2& size, uint32_t format, uint32_t unit = 0u);
+
+	/**
+	 * @brief Loads a texture from a file.
+	 * 
+	 * @param path The path of the file.
+	 */
+	Texture(const std::filesystem::path& path, uint32_t unit = 0u);
 
 	/**
 	 * @brief Deletes the texture.
 	 */
-	~RenderTexture();
+	~Texture();
 
 	/**
 	 * @brief Sets all pixels of the texture to a value.

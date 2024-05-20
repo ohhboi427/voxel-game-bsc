@@ -10,7 +10,7 @@
 
 class Buffer;
 class Shader;
-class RenderTexture;
+class Texture;
 class Window;
 struct Camera;
 
@@ -86,7 +86,8 @@ private:
 	RendererSettings m_settings;
 	const Window& m_targetWindow;
 	uint32_t m_dummyVertexArray;
-	std::unique_ptr<RenderTexture> m_renderTexture;
+	std::unique_ptr<Texture> m_renderTexture;
+	std::unique_ptr<Texture> m_terrainTexture;
 	std::unique_ptr<Shader> m_screenShader;
 	std::unique_ptr<Shader> m_raygenShader;
 	std::unique_ptr<Buffer> m_screenPropertiesBuffer;

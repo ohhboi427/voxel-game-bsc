@@ -2,7 +2,7 @@
 
 #include "Buffer.h"
 #include "GUI.h"
-#include "RenderTexture.h"
+#include "Texture.h"
 #include "Shader.h"
 #include "Window.h"
 #include "../world/Camera.h"
@@ -56,7 +56,8 @@ Renderer::~Renderer()
 
 auto Renderer::InitializeRenderPipeline() -> void
 {
-	m_renderTexture = std::make_unique<RenderTexture>(m_targetWindow.GetSize(), GL_RGBA16F);
+	m_renderTexture = std::make_unique<Texture>(m_targetWindow.GetSize(), GL_RGBA16F, 0u);
+	m_terrainTexture = std::make_unique<Texture>("res/textures/grass.png", 1u);
 
 	m_raygenShader = std::make_unique<Shader>(
 		Shader::Sources
@@ -89,7 +90,6 @@ auto Renderer::InitializeRenderPipeline() -> void
 	m_chunkDataBuffer->Bind(GL_SHADER_STORAGE_BUFFER, 0u);
 	m_chunkAllocator = std::make_unique<ChunkAllocator>(m_settings.ChunkDataBufferSize, m_chunkDataBuffer->GetMappedStorage());
 
-	m_dummyVertexArray;
 	glCreateVertexArrays(1, &m_dummyVertexArray);
 	glBindVertexArray(m_dummyVertexArray);
 }
@@ -99,7 +99,6 @@ auto Renderer::UpdateProjectionData(const Camera& camera) -> void
 	glm::quat rotation(glm::radians(camera.Rotation));
 
 	ProjectionProperties projectionProperties;
-	// auto& projectionProperties = m_projectionPropertiesBuffer->GetMappedStorage<ProjectionProperties>().front();
 	projectionProperties.View = glm::lookAt(
 		camera.Position,
 		camera.Position + rotation * glm::vec3(0.0f, 0.0f, -1.0f),

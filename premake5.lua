@@ -19,12 +19,14 @@ project "voxel-game"
 		"vendor/glm/include",
 		"vendor/toml++/include",
 		"vendor/fastnoiselite/include",
+		"vendor/stb/include",
 	}
 
 	libdirs {
 		"vendor/glad/lib",
 		"vendor/glfw/lib",
 		"vendor/imgui/lib",
+		"vendor/stb/lib",
 	}
 
 	links {
@@ -32,6 +34,7 @@ project "voxel-game"
 		"glad.lib",
 		"glfw3.lib",
 		"imgui.lib",
+		"stb.lib",
 	}
 
 	targetdir "bin"

@@ -336,8 +336,8 @@ void main()
 	if(RayOctreeTraversal(rayOrigin, rayDirection, depth, hitInfo))
 	{
 		// vec4 color = vec4(vec3(hitInfo.Point.w) / 200, hitInfo.Point.w);
-		// vec4 color = vec4(Shade(hitInfo), hitInfo.Point.w);
-		vec4 color = vec4(hitInfo.UV, 0.0, hitInfo.Point.w);
+		// vec4 color = vec4(hitInfo.UV, 0.0, hitInfo.Point.w);
+		vec4 color = vec4(Shade(hitInfo), hitInfo.Point.w);
 
 		imageStore(u_renderedImage, ivec2(gl_GlobalInvocationID.xy), color);
 	}
