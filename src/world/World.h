@@ -10,6 +10,8 @@
 #include <glm/glm.hpp>
 #include <glm/gtx/hash.hpp>
 
+#include <fastnoiselite/FastNoiseLite.h>
+
 class ChunkAllocator;
 
 /**
@@ -75,14 +77,24 @@ private:
 	WorldSettings m_settings;
 	Camera m_camera;
 	ChunkAllocator& m_allocator;
+	FastNoiseLite m_noise;
 	std::deque<glm::ivec2> m_neededChunks;
 	std::vector<std::future<void>> m_chunkLoadingJobs;
 	std::unordered_set<glm::ivec2> m_loadedChunks;
 
 	/**
-	 * @brief Generates a chunk.
+	 * @brief Loads a chunk.
 	 * 
 	 * @param coordinate The coordinate of the chunk.
 	 */
 	auto LoadChunk(glm::ivec2 coordinate) -> void;
+
+	/**
+	 * @brief Generates a chunk.
+	 * 
+	 * @param coordinate The coordinate of the chunk.
+	 * 
+	 * @return The generated chunk data.
+	 */
+	auto GenerateChunk(const glm::ivec2& coordinate) const -> Chunk;
 };

@@ -11,6 +11,8 @@
 #include <chrono>
 #include <ranges>
 
+#include <random>
+
 World::World(const WorldSettings& settings, ChunkAllocator& allocator)
 	: m_allocator(allocator), m_settings(settings), m_camera{
 		.Position = glm::vec3(0.0f, 64.0f, 0.0f),
@@ -18,6 +20,15 @@ World::World(const WorldSettings& settings, ChunkAllocator& allocator)
 		.FieldOfView = static_cast<float>(Config::Get<double>("camera", "fFieldOfView"))
 	}
 {
+	std::random_device randomDevice;
+	std::mt19937_64 randomEngine(randomDevice());
+	m_noise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
+	m_noise.SetFractalType(FastNoiseLite::FractalType_FBm);
+	m_noise.SetFractalOctaves(8);
+	m_noise.SetFractalGain(0.5f);
+	m_noise.SetFractalLacunarity(2.0f);
+	m_noise.SetSeed(static_cast<int>(randomEngine()));
+
 	GUI::OnGui += [&] (const glm::uvec2& size) -> void
 		{
 			ImGui::SetNextWindowSize(ImVec2(350.0f, 55.0f));
@@ -101,6 +112,29 @@ auto World::LoadChunk(glm::ivec2 coordinate) -> void
 	{
 		m_loadedChunks.insert(coordinate);
 	}
+}
+
+auto World::GenerateChunk(const glm::ivec2& coordinate) const -> Chunk
+{
+	Chunk chunk;
+
+	for(uint8_t z = 0u; z < Chunk::Size; z++)
+	{
+		for(uint8_t x = 0u; x < Chunk::Size; x++)
+		{
+			glm::vec2 p = glm::vec2(x, z) + glm::vec2(coordinate) * static_cast<float>(Chunk::Size);
+			p /= 2.0f;
+
+			uint8_t h = static_cast<uint8_t>(((m_noise.GetNoise(p.x, p.y) + 1.0f) / 2.0f) * Chunk::Size);
+
+			for(uint8_t y = 0u; y < Chunk::Size; y++)
+			{
+				chunk.Set(glm::uvec3(x, y, z), y <= h);
+			}
+		}
+	}
+
+	return chunk;
 }
 
 auto WorldSettings::LoadFromConfig() -> WorldSettings

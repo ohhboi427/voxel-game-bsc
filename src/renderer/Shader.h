@@ -46,7 +46,7 @@ public:
 	/**
 	 * @brief Makes the shader active.
 	 */
-	void Use() const noexcept;
+	auto Use() const noexcept -> void;
 
 private:
 	uint32_t m_handle;

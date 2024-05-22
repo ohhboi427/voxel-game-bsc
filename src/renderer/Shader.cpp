@@ -54,7 +54,7 @@ Shader::~Shader()
 	glDeleteProgram(m_handle);
 }
 
-void Shader::Use() const noexcept
+auto Shader::Use() const noexcept -> void
 {
 	glUseProgram(m_handle);
 }
