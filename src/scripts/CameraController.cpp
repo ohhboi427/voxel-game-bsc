@@ -64,7 +64,10 @@ CameraController::CameraController(Camera& camera)
 			ImGui::Text("Press the 'ESC' button to toggle between camera movement and GUI.");
 			ImGui::Text("Use the 'W', 'A', 'S' and 'D' keys to move the camera relative to its rotation. You can rotate the camera using the mouse.");
 			ImGui::End();
+		};
 
+	GUI::OnGui += [&] (const glm::uvec2& windowSize) -> void
+		{
 			ImGui::SetNextWindowSize(ImVec2(350.0f, 100.0f));
 			ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f));
 			ImGui::Begin("Camera", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
